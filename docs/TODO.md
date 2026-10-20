@@ -7,7 +7,7 @@
 - [x] Supabase Postgres·Storage 저장 계층 추가
 - [x] Supabase 테이블·bucket·샘플 데이터 초기화 도구 추가
 - [ ] Supabase Free 프로젝트 생성 및 환경변수 연결
-- [ ] GitHub 비공개 저장소 생성 및 push
+- [x] GitHub 비공개 저장소 생성 및 push
 - [ ] Vercel 프로젝트 Import와 Preview 배포
 - [ ] 프로젝트·과업·작업 CRUD와 파일 업로드·열기·삭제 확인
 - [ ] **실제 운영 전 Vercel Hobby 사용 조건을 다시 검토하고 운영 플랜 확정**

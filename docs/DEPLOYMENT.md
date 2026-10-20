@@ -1,5 +1,7 @@
 # Vercel 무료 검증 배포
 
+GitHub 비공개 저장소: `https://github.com/yangdk02/bo9jeong-task-manager`
+
 ## 결정된 구성
 
 - 웹 앱: Vercel
