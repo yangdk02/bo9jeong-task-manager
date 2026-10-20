@@ -12,7 +12,7 @@ export default async function ProjectsPage() {
     <main className="dashboard-main">
       <header className="page-header project-page-header">
         <div><p className="eyebrow">PROJECTS</p><h1>프로젝트</h1><p>업체별 계약 프로젝트와 과업 진행 상황을 관리합니다.</p></div>
-        <Link className="btn-primary header-action" href="/projects/new"><span>＋</span> 프로젝트 등록</Link>
+        <Link className="btn-accent header-action" href="/projects/new"><span>＋</span> 프로젝트 등록</Link>
       </header>
       <ProjectListView items={data.items} monthKey={data.monthKey} />
     </main>

@@ -97,6 +97,35 @@ create table if not exists public.comments (
   created_at text not null
 );
 
+-- 기존 검증 배포의 초기 샘플 담당자만 현재 6개 부서 구성으로 옮긴다.
+-- 이전 부서값이 그대로인 행만 갱신하므로 이후 사용자가 바꾼 값은 덮어쓰지 않는다.
+update public.people as person
+set department = migration.new_department
+from (values
+  ('USR-001', '마케팅', '경영관리'),
+  ('USR-002', '마케팅', '총무'),
+  ('USR-003', '마케팅', '기획'),
+  ('USR-004', '마케팅', '영상촬영'),
+  ('USR-005', '디자인', '디자인'),
+  ('USR-006', '디자인', '마케팅'),
+  ('USR-007', '디자인', '경영관리'),
+  ('USR-008', '디자인', '총무'),
+  ('USR-009', '기획', '기획'),
+  ('USR-010', '기획', '영상촬영'),
+  ('USR-011', '기획', '디자인'),
+  ('USR-012', '기획', '마케팅'),
+  ('USR-013', '영상촬영', '경영관리'),
+  ('USR-014', '영상촬영', '총무'),
+  ('USR-015', '영상촬영', '기획'),
+  ('USR-016', '영상촬영', '영상촬영'),
+  ('USR-017', '마케팅', '디자인'),
+  ('USR-018', '디자인', '마케팅'),
+  ('USR-019', '기획', '경영관리'),
+  ('USR-020', '영상촬영', '총무')
+) as migration(person_id, old_department, new_department)
+where person.person_id = migration.person_id
+  and person.department = migration.old_department;
+
 create index if not exists projects_status_idx on public.projects (status);
 create index if not exists tasks_project_id_idx on public.tasks (project_id);
 create index if not exists works_task_id_idx on public.works (task_id);

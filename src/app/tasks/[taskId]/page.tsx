@@ -29,7 +29,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ tas
           <div className="detail-title-row"><h1>{data.task.task.task_name}</h1><span className={`project-status status-${data.task.task.status}`}>{taskStatusLabels[data.task.task.status]}</span></div>
           <p>{data.task.task.target_scope} · {data.task.task.cycle === "monthly" ? "월간 반복" : "일회성"}</p>
         </div>
-        <div className="detail-actions"><Link className="btn-primary" href={`/projects/${data.project.project_id}/works/new?taskId=${taskId}`}>작업 등록</Link><Link href={`/tasks/${taskId}/edit`}>과업 수정</Link><EntityDeleteButton endpoint={`/api/tasks/${taskId}`} label="과업 삭제" redirectTo={`/projects/${data.project.project_id}`} message="이 과업과 연결된 모든 작업을 삭제할까요? 이 작업은 되돌릴 수 없습니다." /></div>
+        <div className="detail-actions"><Link className="btn-accent" href={`/projects/${data.project.project_id}/works/new?taskId=${taskId}`}>작업 등록</Link><Link href={`/tasks/${taskId}/edit`}>과업 수정</Link><EntityDeleteButton endpoint={`/api/tasks/${taskId}`} label="과업 삭제" redirectTo={`/projects/${data.project.project_id}`} message="이 과업과 연결된 모든 작업을 삭제할까요? 이 작업은 되돌릴 수 없습니다." /></div>
       </header>
       <section className="task-detail-hero card">
         <div><span>목표</span><strong>{data.task.task.target_count}{data.task.task.target_unit}</strong></div>
