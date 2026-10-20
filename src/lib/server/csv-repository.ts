@@ -27,11 +27,14 @@ async function ensureLocalTable(table: TableName) {
 
 export async function readTable<K extends TableName>(table: K): Promise<TableRow<K>[]> {
   if (usesPostgres()) {
-    const encodedRows = await getDatabaseClient()
-      .unsafe<{ data_json: string }[]>(`select row_to_json(source)::text as data_json from "${table}" source`)
+    const template = await readFile(path.join(templateDirectory, `${table}.csv`), "utf8");
+    const headers = template.replace(/^\uFEFF/, "").split(/\r?\n/, 1)[0].split(",");
+    const selectedColumns = headers.map((header) => `"${header}"`).join(", ");
+    const valueRows = await getDatabaseClient()
+      .unsafe<Record<string, unknown>[]>(`select ${selectedColumns} from "${table}"`)
       .values();
-    return encodedRows.map((encodedRow, index) => {
-      const row = JSON.parse(encodedRow[0]);
+    return valueRows.map((values, index) => {
+      const row = Object.fromEntries(headers.map((header, columnIndex) => [header, values[columnIndex]]));
       const result = tableSchemas[table].safeParse(row);
       if (!result.success) {
         const issue = result.error.issues[0];
