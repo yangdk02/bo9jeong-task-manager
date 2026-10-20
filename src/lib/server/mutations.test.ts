@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assetInputSchema, commentInputSchema } from "./mutations";
+import { assetInputSchema, commentInputSchema, workFileDeleteInputSchema } from "./mutations";
 
 const validAsset = {
   project_id: "PRJ-1",
@@ -30,5 +30,12 @@ describe("comment input", () => {
   it("rejects an empty or oversized comment", () => {
     expect(commentInputSchema.safeParse({ target_type: "asset", target_id: "AST-1", author_person_id: "USR-1", body: " " }).success).toBe(false);
     expect(commentInputSchema.safeParse({ target_type: "asset", target_id: "AST-1", author_person_id: "USR-1", body: "가".repeat(2001) }).success).toBe(false);
+  });
+});
+
+describe("work file deletion input", () => {
+  it("requires the current person", () => {
+    expect(workFileDeleteInputSchema.parse({ actor_id: "USR-1" })).toEqual({ actor_id: "USR-1" });
+    expect(workFileDeleteInputSchema.safeParse({ actor_id: "" }).success).toBe(false);
   });
 });

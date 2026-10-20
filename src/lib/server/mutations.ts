@@ -60,6 +60,9 @@ export const commentInputSchema = z.object({
   author_person_id: z.string().min(1),
   body: z.string().trim().min(1, "댓글 내용을 입력해 주세요.").max(2000, "댓글은 2,000자 이하로 입력해 주세요."),
 });
+export const workFileDeleteInputSchema = z.object({
+  actor_id: z.string().min(1, "현재 담당자를 다시 선택해 주세요."),
+});
 
 export type ProjectInput = z.input<typeof projectInputSchema>;
 export type TaskInput = z.input<typeof taskInputSchema>;
@@ -337,5 +340,22 @@ export async function deleteWork(workId: string) {
     const deletedPaths = files.filter((file) => file.work_id === workId).map((file) => file.file_path);
     await writeTables({ works: works.filter((work) => work.work_id !== workId), work_assignees: links.filter((link) => link.work_id !== workId), work_files: files.filter((file) => file.work_id !== workId), comments: comments.filter((comment) => !(comment.target_type === "work" && comment.target_id === workId)) });
     await removePhysicalFiles(deletedPaths);
+  });
+}
+
+export async function deleteWorkFile(workId: string, workFileId: string, raw: unknown) {
+  return locked(async () => {
+    const input = workFileDeleteInputSchema.parse(raw);
+    const [people, works, files, comments] = await readTables(["people", "works", "work_files", "comments"]);
+    ensureActor(people, input.actor_id);
+    if (!works.some((work) => work.work_id === workId)) throw new Error("작업을 찾을 수 없습니다.");
+    const existing = files.find((file) => file.work_file_id === workFileId && file.work_id === workId);
+    if (!existing) throw new Error("삭제할 증빙 파일을 찾을 수 없습니다.");
+    const activity = systemActivity("work", workId, input.actor_id, `증빙 파일 ${existing.file_name}이(가) 삭제되었습니다.`, now());
+    await writeTables({
+      work_files: files.filter((file) => file.work_file_id !== workFileId),
+      comments: [...comments, activity],
+    });
+    await removeStoredFiles([existing.file_path]);
   });
 }

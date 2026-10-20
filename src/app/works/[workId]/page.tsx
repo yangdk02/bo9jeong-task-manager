@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { CommentComposer } from "@/components/comment-composer";
 import { EntityDeleteButton } from "@/components/entity-delete-button";
+import { WorkFileCard } from "@/components/work-file-card";
 import { getWorkDetailData } from "@/lib/server/works";
 
 export const dynamic = "force-dynamic";
@@ -16,16 +16,6 @@ function formatDateTime(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
-}
-
-function fileUrl(filePath: string) {
-  const segments = filePath.replace(/\\/g, "/").split("/");
-  if (segments[0] === "storage") segments.shift();
-  return `/api/files/${segments.map(encodeURIComponent).join("/")}`;
-}
-
-function isImage(fileName: string) {
-  return /\.(png|jpe?g|gif|webp|svg)$/i.test(fileName);
 }
 
 export default async function WorkDetailPage({ params }: { params: Promise<{ workId: string }> }) {
@@ -64,10 +54,7 @@ export default async function WorkDetailPage({ params }: { params: Promise<{ wor
 
           <section className="card work-files-card">
             <div className="section-heading"><div><p className="eyebrow">FILES</p><h2>캡처본·증빙 파일</h2></div><span>{data.files.length}개</span></div>
-            {data.files.length === 0 ? <div className="empty-state">등록된 파일이 없습니다.</div> : <div className="work-file-grid">{data.files.map((file) => <a className="work-file-card" href={fileUrl(file.file_path)} target="_blank" rel="noreferrer" key={file.work_file_id}>
-              {isImage(file.file_name) ? <Image src={fileUrl(file.file_path)} alt={file.file_name} width={640} height={420} unoptimized /> : <div className="file-document-preview"><strong>{file.file_name.split(".").pop()?.toUpperCase()}</strong><span>파일 열기 ↗</span></div>}
-              <span><strong>{file.file_name}</strong><small>{formatDateTime(file.uploaded_at)}</small></span>
-            </a>)}</div>}
+            {data.files.length === 0 ? <div className="empty-state">등록된 파일이 없습니다.</div> : <div className="work-file-grid">{data.files.map((file) => <WorkFileCard workId={workId} file={file} key={file.work_file_id} />)}</div>}
           </section>
 
           <section className="card work-memo-card">
