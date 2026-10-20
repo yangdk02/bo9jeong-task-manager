@@ -34,7 +34,7 @@ export async function readTable<K extends TableName>(table: K): Promise<TableRow
       .unsafe<Record<string, unknown>[]>(`select ${selectedColumns} from "${table}"`)
       .values();
     return valueRows.map((values, index) => {
-      const row = Object.fromEntries(headers.map((header, columnIndex) => [header, values[columnIndex]]));
+      const row = Object.fromEntries(headers.map((header, columnIndex) => [header, databaseCell(header, values[columnIndex])]));
       const result = tableSchemas[table].safeParse(row);
       if (!result.success) {
         const issue = result.error.issues[0];
@@ -65,6 +65,15 @@ export async function readTable<K extends TableName>(table: K): Promise<TableRow
 function csvCell(value: unknown) {
   const text = String(value ?? "");
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
+function databaseCell(header: string, value: unknown) {
+  if (header.endsWith("_date")) {
+    if (value instanceof Date) return value.toISOString().slice(0, 10);
+    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+  }
+  if (header.endsWith("_at") && value instanceof Date) return value.toISOString();
+  return value;
 }
 
 export async function writeTables(updates: Partial<{ [K in TableName]: TableRow<K>[] }>) {
