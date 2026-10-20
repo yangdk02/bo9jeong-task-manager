@@ -29,12 +29,13 @@ export async function readTable<K extends TableName>(table: K): Promise<TableRow
   if (usesPostgres()) {
     const template = await readFile(path.join(templateDirectory, `${table}.csv`), "utf8");
     const headers = template.replace(/^\uFEFF/, "").split(/\r?\n/, 1)[0].split(",");
-    const selectedColumns = headers.map((header) => `"${header}"`).join(", ");
-    const valuesRows = await getDatabaseClient()
-      .unsafe(`select ${selectedColumns} from "${table}"`)
+    const result = await getDatabaseClient()
+      .unsafe(`select coalesce(json_agg(row_to_json(source)), '[]'::json)::text from "${table}" source`)
       .values();
-    return valuesRows.map((values, index) => {
-      const row = Object.fromEntries(headers.map((header, columnIndex) => [header, databaseCell(header, values[columnIndex])]));
+    const encodedRows = result[0]?.[0];
+    const rows = JSON.parse(String(encodedRows ?? "[]")) as Record<string, unknown>[];
+    return rows.map((source, index) => {
+      const row = Object.fromEntries(headers.map((header) => [header, databaseCell(header, source[header])]));
       const result = tableSchemas[table].safeParse(row);
       if (!result.success) {
         const issue = result.error.issues[0];

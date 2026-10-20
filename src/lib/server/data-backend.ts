@@ -22,7 +22,9 @@ export function getDatabaseClient() {
     const url = connectionString();
     if (!url) throw new Error("POSTGRES_URL 또는 DATABASE_URL이 설정되지 않았습니다.");
     databaseClient = postgres(url, {
-      max: 3,
+      // A single connection keeps the parallel table reads made by one page
+      // request ordered when Supabase's transaction pooler is in use.
+      max: 1,
       prepare: false,
       idle_timeout: 20,
       connect_timeout: 15,
