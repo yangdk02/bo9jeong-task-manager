@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
+import { CommentComposer } from "@/components/comment-composer";
 import { EntityDeleteButton } from "@/components/entity-delete-button";
 import { getWorkDetailData } from "@/lib/server/works";
 
@@ -77,6 +78,7 @@ export default async function WorkDetailPage({ params }: { params: Promise<{ wor
 
         <aside className="card activity-card">
           <div className="section-heading"><div><p className="eyebrow">ACTIVITY</p><h2>댓글·활동</h2></div><span>{data.comments.length}개</span></div>
+          <CommentComposer targetType="work" targetId={workId} />
           {data.comments.length === 0 ? <div className="empty-state">기록된 활동이 없습니다.</div> : <ol className="activity-list">{data.comments.map(({ comment, author }) => <li key={comment.comment_id}>
             <span className={`activity-dot ${comment.comment_type}`} />
             <div><strong>{comment.comment_type === "system" ? "시스템" : author?.name ?? "담당자"}</strong><p>{comment.body}</p><small>{formatDateTime(comment.created_at)}</small></div>

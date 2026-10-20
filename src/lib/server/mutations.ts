@@ -54,6 +54,12 @@ export const assetInputSchema = z.object({
   owner_person_id: z.string().default(""),
   actor_id: z.string().min(1),
 });
+export const commentInputSchema = z.object({
+  target_type: z.enum(["work", "asset"]),
+  target_id: z.string().min(1),
+  author_person_id: z.string().min(1),
+  body: z.string().trim().min(1, "댓글 내용을 입력해 주세요.").max(2000, "댓글은 2,000자 이하로 입력해 주세요."),
+});
 
 export type ProjectInput = z.input<typeof projectInputSchema>;
 export type TaskInput = z.input<typeof taskInputSchema>;
@@ -76,6 +82,34 @@ function ensureActor(people: TableRow<"people">[], actorId: string) {
 function ensureAssignees(people: TableRow<"people">[], ids: string[]) {
   const known = new Set(people.map((person) => person.person_id));
   if (ids.some((personId) => !known.has(personId))) throw new Error("존재하지 않는 담당자가 포함되어 있습니다.");
+}
+function systemActivity(targetType: "work" | "asset", targetId: string, actorId: string, body: string, timestamp: string): TableRow<"comments"> {
+  return { comment_id: id("comment"), target_type: targetType, target_id: targetId, author_person_id: actorId, comment_type: "system", body, created_at: timestamp };
+}
+function sameIds(left: string[], right: string[]) {
+  return [...new Set(left)].sort().join("|") === [...new Set(right)].sort().join("|");
+}
+function personNames(people: TableRow<"people">[], ids: string[]) {
+  const names = ids.flatMap((personId) => people.find((person) => person.person_id === personId)?.name ?? []);
+  return names.length ? names.join(", ") : "미지정";
+}
+function statusLabel(status: string) {
+  return ({ planned: "예정", active: "진행", completed: "완료", draft: "작성 중" } as Record<string, string>)[status] ?? status;
+}
+
+export async function createComment(raw: unknown) {
+  return locked(async () => {
+    const input = commentInputSchema.parse(raw);
+    const [people, works, assets, comments] = await readTables(["people", "works", "assets", "comments"]);
+    ensureActor(people, input.author_person_id);
+    const targetExists = input.target_type === "work"
+      ? works.some((work) => work.work_id === input.target_id)
+      : assets.some((asset) => asset.asset_id === input.target_id);
+    if (!targetExists) throw new Error("댓글을 남길 대상을 찾을 수 없습니다.");
+    const commentId = id("comment");
+    await writeTables({ comments: [...comments, { comment_id: commentId, target_type: input.target_type, target_id: input.target_id, author_person_id: input.author_person_id, comment_type: "assignee", body: input.body, created_at: now() }] });
+    return commentId;
+  });
 }
 
 export async function createProject(raw: ProjectInput) {
@@ -206,7 +240,7 @@ export async function createAsset(raw: unknown, file?: File) {
     const timestamp = now();
     const asset: TableRow<"assets"> = { asset_id: assetId, project_id: input.project_id, asset_name: input.asset_name, asset_category: input.asset_category, version: input.version, ...stored, status: input.status, note: input.note, owner_person_id: input.owner_person_id };
     try {
-      await writeTables({ assets: [...assets, asset], comments: [...comments, { comment_id: id("comment"), target_type: "asset", target_id: assetId, author_person_id: input.actor_id, comment_type: "system", body: "자료가 등록되었습니다.", created_at: timestamp }] });
+      await writeTables({ assets: [...assets, asset], comments: [...comments, systemActivity("asset", assetId, input.actor_id, "자료가 등록되었습니다.", timestamp), systemActivity("asset", assetId, input.actor_id, `파일 ${file.name}이(가) 추가되었습니다.`, timestamp)] });
     } catch (error) {
       await removeStoredFiles([stored.file_path]);
       throw error;
@@ -228,8 +262,14 @@ export async function updateAsset(assetId: string, raw: unknown, file?: File) {
     const stored = file?.size ? await saveAssetFile(assetId, input.project_id, input.actor_id, file) : undefined;
     const next: TableRow<"assets"> = { ...existing, project_id: input.project_id, asset_name: input.asset_name, asset_category: input.asset_category, version: input.version, status: input.status, note: input.note, owner_person_id: input.owner_person_id, ...(stored ?? {}) };
     const timestamp = now();
+    const activities: TableRow<"comments">[] = [];
+    const metadataChanged = existing.project_id !== input.project_id || existing.asset_name !== input.asset_name || existing.asset_category !== input.asset_category || existing.version !== input.version || existing.note !== input.note;
+    if (metadataChanged) activities.push(systemActivity("asset", assetId, input.actor_id, "자료 정보가 수정되었습니다.", timestamp));
+    if (existing.status !== input.status) activities.push(systemActivity("asset", assetId, input.actor_id, `자료 상태가 ${statusLabel(existing.status)}에서 ${statusLabel(input.status)}(으)로 변경되었습니다.`, timestamp));
+    if (existing.owner_person_id !== input.owner_person_id) activities.push(systemActivity("asset", assetId, input.actor_id, `자료 담당자가 ${personNames(people, input.owner_person_id ? [input.owner_person_id] : [])}(으)로 변경되었습니다.`, timestamp));
+    if (stored) activities.push(systemActivity("asset", assetId, input.actor_id, `파일이 ${stored.file_name}(으)로 교체되었습니다.`, timestamp));
     try {
-      await writeTables({ assets: assets.map((asset) => asset.asset_id === assetId ? next : asset), comments: [...comments, { comment_id: id("comment"), target_type: "asset", target_id: assetId, author_person_id: input.actor_id, comment_type: "system", body: stored ? "자료 정보와 파일이 수정되었습니다." : "자료 정보가 수정되었습니다.", created_at: timestamp }] });
+      await writeTables({ assets: assets.map((asset) => asset.asset_id === assetId ? next : asset), comments: [...comments, ...activities] });
     } catch (error) {
       if (stored) await removeStoredFiles([stored.file_path]);
       throw error;
@@ -259,7 +299,9 @@ export async function createWork(raw: unknown, files: File[] = []) {
     let addedFiles: TableRow<"work_files">[] = [];
     try {
       addedFiles = await saveFiles(workId, input.actor_id, files);
-      await writeTables({ works: [...works, work], work_assignees: [...links, ...input.assignee_ids.map((personId) => ({ work_assignee_id: id("wa"), work_id: workId, person_id: personId }))], work_files: [...workFiles, ...addedFiles], comments: [...comments, { comment_id: id("comment"), target_type: "work", target_id: workId, author_person_id: input.actor_id, comment_type: "system", body: "작업이 등록되었습니다.", created_at: timestamp }] });
+      const activities = [systemActivity("work", workId, input.actor_id, "작업이 등록되었습니다.", timestamp)];
+      if (addedFiles.length) activities.push(systemActivity("work", workId, input.actor_id, `증빙 파일 ${addedFiles.length}개가 추가되었습니다.`, timestamp));
+      await writeTables({ works: [...works, work], work_assignees: [...links, ...input.assignee_ids.map((personId) => ({ work_assignee_id: id("wa"), work_id: workId, person_id: personId }))], work_files: [...workFiles, ...addedFiles], comments: [...comments, ...activities] });
     } catch (error) { await removeStoredFiles(addedFiles.map((file) => file.file_path)); throw error; }
     return workId;
   });
@@ -270,12 +312,20 @@ export async function updateWork(workId: string, raw: unknown, files: File[] = [
     const input = workInputSchema.parse(raw);
     const [people, tasks, works, links, workFiles, comments] = await readTables(["people", "tasks", "works", "work_assignees", "work_files", "comments"]);
     ensureActor(people, input.actor_id); ensureAssignees(people, input.assignee_ids);
-    if (!works.some((work) => work.work_id === workId)) throw new Error("작업을 찾을 수 없습니다.");
+    const existing = works.find((work) => work.work_id === workId);
+    if (!existing) throw new Error("작업을 찾을 수 없습니다.");
     if (!tasks.some((task) => task.task_id === input.task_id)) throw new Error("과업을 찾을 수 없습니다.");
     const timestamp = now(); let addedFiles: TableRow<"work_files">[] = [];
+    const existingAssigneeIds = links.filter((link) => link.work_id === workId).map((link) => link.person_id);
     try {
       addedFiles = await saveFiles(workId, input.actor_id, files);
-      await writeTables({ works: works.map((work) => work.work_id === workId ? { ...work, task_id: input.task_id, work_date: input.work_date, title: input.title, result_url: input.result_url, memo: input.memo, status: input.status, updated_at: timestamp } : work), work_assignees: [...links.filter((link) => link.work_id !== workId), ...input.assignee_ids.map((personId) => ({ work_assignee_id: id("wa"), work_id: workId, person_id: personId }))], work_files: [...workFiles, ...addedFiles], comments: [...comments, { comment_id: id("comment"), target_type: "work", target_id: workId, author_person_id: input.actor_id, comment_type: "system", body: "작업 정보가 수정되었습니다.", created_at: timestamp }] });
+      const activities: TableRow<"comments">[] = [];
+      const informationChanged = existing.task_id !== input.task_id || existing.work_date !== input.work_date || existing.title !== input.title || existing.result_url !== input.result_url || existing.memo !== input.memo;
+      if (informationChanged) activities.push(systemActivity("work", workId, input.actor_id, "작업 정보가 수정되었습니다.", timestamp));
+      if (existing.status !== input.status) activities.push(systemActivity("work", workId, input.actor_id, `작업 상태가 ${statusLabel(existing.status)}에서 ${statusLabel(input.status)}(으)로 변경되었습니다.`, timestamp));
+      if (!sameIds(existingAssigneeIds, input.assignee_ids)) activities.push(systemActivity("work", workId, input.actor_id, `작업 담당자가 ${personNames(people, input.assignee_ids)}(으)로 변경되었습니다.`, timestamp));
+      if (addedFiles.length) activities.push(systemActivity("work", workId, input.actor_id, `증빙 파일 ${addedFiles.length}개가 추가되었습니다.`, timestamp));
+      await writeTables({ works: works.map((work) => work.work_id === workId ? { ...work, task_id: input.task_id, work_date: input.work_date, title: input.title, result_url: input.result_url, memo: input.memo, status: input.status, updated_at: timestamp } : work), work_assignees: [...links.filter((link) => link.work_id !== workId), ...input.assignee_ids.map((personId) => ({ work_assignee_id: id("wa"), work_id: workId, person_id: personId }))], work_files: [...workFiles, ...addedFiles], comments: [...comments, ...activities] });
     } catch (error) { await Promise.all(addedFiles.map((file) => removePhysicalFiles([file.file_path]))); throw error; }
   });
 }

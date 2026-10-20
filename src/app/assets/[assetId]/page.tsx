@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
+import { CommentComposer } from "@/components/comment-composer";
 import { EntityDeleteButton } from "@/components/entity-delete-button";
 import { getAssetDetailData } from "@/lib/server/assets";
 
@@ -25,6 +26,6 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ as
       <section className="card asset-preview">{isImage(data.asset.file_name) ? <Image src={fileUrl(data.asset.file_path)} width={1100} height={720} alt={data.asset.asset_name} unoptimized /> : <div className="asset-document-preview"><strong>{data.asset.file_name.split(".").pop()?.toUpperCase()}</strong><span>{data.asset.file_name}</span><a className="btn-primary" href={fileUrl(data.asset.file_path)} target="_blank" rel="noreferrer">파일 열기</a></div>}</section>
       <aside className="card asset-facts"><div className="section-heading"><div><p className="eyebrow">DETAIL</p><h2>자료 정보</h2></div></div><dl><div><dt>프로젝트</dt><dd><Link href={`/projects/${data.project.project_id}`}>{data.project.project_name}</Link></dd></div><div><dt>담당자</dt><dd>{data.owner ? `${data.owner.name} · ${data.owner.department}` : "미지정"}</dd></div><div><dt>파일명</dt><dd>{data.asset.file_name}</dd></div><div><dt>메모</dt><dd>{data.asset.note || "없음"}</dd></div></dl><a className="btn-primary asset-download" href={fileUrl(data.asset.file_path)} target="_blank" rel="noreferrer">파일 보기</a></aside>
     </div>
-    <section className="card asset-activity"><div className="section-heading"><div><p className="eyebrow">ACTIVITY</p><h2>댓글·활동</h2></div><span>{data.comments.length}개</span></div>{data.comments.length === 0 ? <div className="empty-state">기록된 활동이 없습니다.</div> : <ol className="activity-list">{data.comments.map(({ comment, author }) => <li key={comment.comment_id}><span className={`activity-dot ${comment.comment_type}`} /><div><strong>{comment.comment_type === "system" ? "시스템" : author?.name ?? "담당자"}</strong><p>{comment.body}</p><small>{new Date(comment.created_at).toLocaleString("ko-KR")}</small></div></li>)}</ol>}</section>
+    <section className="card asset-activity"><div className="section-heading"><div><p className="eyebrow">ACTIVITY</p><h2>댓글·활동</h2></div><span>{data.comments.length}개</span></div><CommentComposer targetType="asset" targetId={assetId} />{data.comments.length === 0 ? <div className="empty-state">기록된 활동이 없습니다.</div> : <ol className="activity-list">{data.comments.map(({ comment, author }) => <li key={comment.comment_id}><span className={`activity-dot ${comment.comment_type}`} /><div><strong>{comment.comment_type === "system" ? "시스템" : author?.name ?? "담당자"}</strong><p>{comment.body}</p><small>{new Date(comment.created_at).toLocaleString("ko-KR")}</small></div></li>)}</ol>}</section>
   </main></div>;
 }

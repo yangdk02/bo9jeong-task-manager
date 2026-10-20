@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assetInputSchema } from "./mutations";
+import { assetInputSchema, commentInputSchema } from "./mutations";
 
 const validAsset = {
   project_id: "PRJ-1",
@@ -19,5 +19,16 @@ describe("asset input", () => {
 
   it("rejects an unsupported category", () => {
     expect(assetInputSchema.safeParse({ ...validAsset, asset_category: "임의 유형" }).success).toBe(false);
+  });
+});
+
+describe("comment input", () => {
+  it("accepts a trimmed assignee comment", () => {
+    expect(commentInputSchema.parse({ target_type: "work", target_id: "WRK-1", author_person_id: "USR-1", body: "  확인했습니다.  " }).body).toBe("확인했습니다.");
+  });
+
+  it("rejects an empty or oversized comment", () => {
+    expect(commentInputSchema.safeParse({ target_type: "asset", target_id: "AST-1", author_person_id: "USR-1", body: " " }).success).toBe(false);
+    expect(commentInputSchema.safeParse({ target_type: "asset", target_id: "AST-1", author_person_id: "USR-1", body: "가".repeat(2001) }).success).toBe(false);
   });
 });
