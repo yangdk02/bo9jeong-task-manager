@@ -27,10 +27,10 @@ async function ensureLocalTable(table: TableName) {
 
 export async function readTable<K extends TableName>(table: K): Promise<TableRow<K>[]> {
   if (usesPostgres()) {
-    const encodedRows = await getDatabaseClient().unsafe(`select row_to_json(source) as data from "${table}" source`);
+    const encodedRows = await getDatabaseClient().unsafe(`select row_to_json(source)::text as data_json from "${table}" source`);
     return encodedRows.map((encodedRow, index) => {
       const encodedRecord = encodedRow as Record<string, unknown>;
-      const rawRow = encodedRecord.data ?? Object.values(encodedRecord)[0];
+      const rawRow = encodedRecord.data_json ?? Object.values(encodedRecord)[0];
       const row = typeof rawRow === "string" ? JSON.parse(rawRow) : rawRow;
       const result = tableSchemas[table].safeParse(row);
       if (!result.success) {
