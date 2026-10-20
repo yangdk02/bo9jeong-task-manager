@@ -3,13 +3,15 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { isTaskVisibleInMonth, taskWorksForMonth } from "@/lib/domain/task-period";
 import type { ProjectDetailData, ProjectTaskItem, ProjectWorkItem } from "@/lib/server/projects";
 
 const taskStatusLabels = { planned: "예정", active: "진행", completed: "완료" } as const;
 const workStatusLabels = { draft: "작성 중", completed: "완료" } as const;
 
 function taskWorksForPeriod(task: ProjectTaskItem, monthKey: string) {
-  return task.task.cycle === "monthly" ? task.works.filter((item) => item.work.work_date.startsWith(monthKey)) : task.works;
+  const visibleWorkIds = new Set(taskWorksForMonth(task.task, task.works.map((item) => item.work), monthKey).map((work) => work.work_id));
+  return task.works.filter((item) => visibleWorkIds.has(item.work.work_id));
 }
 
 function matchesWorkFilter(item: ProjectWorkItem, department: string, personId: string) {
@@ -34,15 +36,16 @@ export function ProjectDetailView({ data }: { data: ProjectDetailData }) {
   }, [data]);
   const departments = [...new Set(relevantPeople.map((person) => person.department))];
 
-  const visibleTasks = data.tasks.filter((task) => {
+  const periodTasks = data.tasks.filter((task) => isTaskVisibleInMonth(task.task, task.works.map((item) => item.work), monthKey));
+  const visibleTasks = periodTasks.filter((task) => {
     if (!department && !personId) return true;
     const taskPeople = [...task.assignees, ...task.works.flatMap((item) => item.assignees)];
     return (!department || taskPeople.some((person) => person.department === department)) && (!personId || taskPeople.some((person) => person.person_id === personId));
   });
 
   const monthNumber = Number(monthKey.split("-")[1]);
-  const monthlyTarget = data.tasks.filter((task) => task.task.cycle === "monthly").reduce((sum, task) => sum + task.task.target_count, 0);
-  const monthlyCompleted = data.tasks.filter((task) => task.task.cycle === "monthly").reduce((sum, task) => sum + taskWorksForPeriod(task, monthKey).filter((item) => item.work.status === "completed").length, 0);
+  const periodTarget = periodTasks.reduce((sum, task) => sum + task.task.target_count, 0);
+  const periodCompleted = periodTasks.reduce((sum, task) => sum + taskWorksForPeriod(task, monthKey).filter((item) => item.work.status === "completed").length, 0);
 
   return <>
     <section className="detail-controls card">
@@ -52,7 +55,7 @@ export function ProjectDetailView({ data }: { data: ProjectDetailData }) {
     </section>
 
     <section className="detail-summary" aria-label={`${monthNumber}월 프로젝트 요약`}>
-      <div><span>{monthNumber}월 목표</span><strong>{monthlyTarget}건</strong></div><div><span>완료 작업</span><strong>{monthlyCompleted}건</strong></div><div><span>남은 목표</span><strong>{Math.max(monthlyTarget - monthlyCompleted, 0)}건</strong></div>
+      <div><span>{monthNumber}월 목표</span><strong>{periodTarget}건</strong></div><div><span>완료 작업</span><strong>{periodCompleted}건</strong></div><div><span>남은 목표</span><strong>{Math.max(periodTarget - periodCompleted, 0)}건</strong></div>
     </section>
 
     <section className="task-section">

@@ -1,4 +1,5 @@
 import type { Person, Project, Task, Work } from "@/lib/domain/schemas";
+import { isTaskVisibleInMonth, taskWorksForMonth } from "@/lib/domain/task-period";
 import { seoulMonthKey } from "@/lib/server/dashboard";
 import { readTables } from "@/lib/server/csv-repository";
 
@@ -33,10 +34,6 @@ export type ProjectDetailData = {
   tasks: ProjectTaskItem[];
 };
 
-function completedForMonth(works: Work[], taskIds: Set<string>, monthKey: string) {
-  return works.filter((work) => taskIds.has(work.task_id) && work.status === "completed" && work.work_date.startsWith(monthKey)).length;
-}
-
 export async function getProjectListData(date = new Date()) {
   const monthKey = seoulMonthKey(date);
   const [people, projects, projectAssignees, tasks, works] = await readTables(["people", "projects", "project_assignees", "tasks", "works"]);
@@ -45,9 +42,13 @@ export async function getProjectListData(date = new Date()) {
   const items: ProjectListItem[] = projects.map((project) => {
     const projectTasks = tasks.filter((task) => task.project_id === project.project_id);
     const monthlyTasks = projectTasks.filter((task) => task.cycle === "monthly");
-    const taskIds = new Set(monthlyTasks.map((task) => task.task_id));
-    const target = monthlyTasks.reduce((sum, task) => sum + task.target_count, 0);
-    const completed = completedForMonth(works, taskIds, monthKey);
+    const visibleOnceTasks = projectTasks.filter((task) => task.cycle === "once" && isTaskVisibleInMonth(task, works, monthKey));
+    const periodTasks = [...monthlyTasks, ...visibleOnceTasks];
+    const target = periodTasks.reduce((sum, task) => sum + task.target_count, 0);
+    const completed = periodTasks.reduce(
+      (sum, task) => sum + taskWorksForMonth(task, works, monthKey).filter((work) => work.status === "completed").length,
+      0,
+    );
     const assignees = projectAssignees
       .filter((link) => link.project_id === project.project_id)
       .flatMap((link) => personById.get(link.person_id) ?? []);
@@ -56,7 +57,7 @@ export async function getProjectListData(date = new Date()) {
       assignees,
       departments: [...new Set(assignees.map((person) => person.department))],
       monthlyTaskCount: monthlyTasks.length,
-      onceTaskCount: projectTasks.filter((task) => task.cycle === "once").length,
+      onceTaskCount: visibleOnceTasks.length,
       target,
       completed,
       percent: target === 0 ? 0 : Math.min(Math.round((completed / target) * 100), 100),

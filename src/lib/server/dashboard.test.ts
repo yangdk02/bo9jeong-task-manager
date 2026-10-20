@@ -32,7 +32,7 @@ describe("dashboard metrics", () => {
 
   it("reads the October sample data through the repository", async () => {
     const dashboard = await getDashboardData(new Date("2026-10-20T03:00:00Z"));
-    expect(dashboard.totals).toMatchObject({ target: 31, completed: 21, remaining: 10 });
+    expect(dashboard.totals).toMatchObject({ target: 40, completed: 29, remaining: 11 });
     expect(dashboard.projectProgress).toHaveLength(3);
     expect(dashboard.people).toHaveLength(20);
     expect(dashboard.recentWorks).toHaveLength(5);
@@ -51,7 +51,13 @@ describe("dashboard metrics", () => {
   it("builds project list progress from October sample work", async () => {
     const result = await getProjectListData(new Date("2026-10-20T03:00:00Z"));
     expect(result.items).toHaveLength(3);
-    expect(result.items[0]).toMatchObject({ target: 12, completed: 7, percent: 58, monthlyTaskCount: 3, onceTaskCount: 1 });
+    expect(result.items[0]).toMatchObject({ target: 14, completed: 9, percent: 64, monthlyTaskCount: 3, onceTaskCount: 1 });
+  });
+
+  it("carries only the incomplete October one-time task into November", async () => {
+    const result = await getProjectListData(new Date("2026-11-20T03:00:00Z"));
+    expect(result.items.map((item) => item.onceTaskCount)).toEqual([0, 0, 1]);
+    expect(result.items[2]).toMatchObject({ target: 6, completed: 1, onceTaskCount: 1 });
   });
 
   it("builds a project detail with assignments and nested work", async () => {

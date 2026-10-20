@@ -1,4 +1,5 @@
 import type { Person, Project, Task, Work } from "@/lib/domain/schemas";
+import { isTaskVisibleInMonth, taskWorksForMonth } from "@/lib/domain/task-period";
 import { readTables } from "@/lib/server/csv-repository";
 
 export type ProjectProgress = {
@@ -44,12 +45,14 @@ export function calculateProjectProgress(
   monthKey: string,
 ): ProjectProgress[] {
   return projects.map((project) => {
-    const monthlyTasks = tasks.filter((task) => task.project_id === project.project_id && task.cycle === "monthly");
-    const taskIds = new Set(monthlyTasks.map((task) => task.task_id));
-    const target = monthlyTasks.reduce((sum, task) => sum + task.target_count, 0);
-    const completed = works.filter(
-      (work) => taskIds.has(work.task_id) && work.status === "completed" && work.work_date.startsWith(monthKey),
-    ).length;
+    const periodTasks = tasks.filter(
+      (task) => task.project_id === project.project_id && isTaskVisibleInMonth(task, works, monthKey),
+    );
+    const target = periodTasks.reduce((sum, task) => sum + task.target_count, 0);
+    const completed = periodTasks.reduce(
+      (sum, task) => sum + taskWorksForMonth(task, works, monthKey).filter((work) => work.status === "completed").length,
+      0,
+    );
     const remaining = Math.max(target - completed, 0);
     const percent = target === 0 ? 0 : Math.min(Math.round((completed / target) * 100), 100);
     return { project, target, completed, remaining, percent };
