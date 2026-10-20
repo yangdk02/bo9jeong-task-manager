@@ -103,6 +103,30 @@ create index if not exists works_task_id_idx on public.works (task_id);
 create index if not exists assets_project_id_idx on public.assets (project_id);
 create index if not exists comments_target_idx on public.comments (target_type, target_id);
 
+create or replace function public.bo9jeong_read_snapshot()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'people', coalesce((select jsonb_agg(to_jsonb(source)) from public.people source), '[]'::jsonb),
+    'projects', coalesce((select jsonb_agg(to_jsonb(source)) from public.projects source), '[]'::jsonb),
+    'project_assignees', coalesce((select jsonb_agg(to_jsonb(source)) from public.project_assignees source), '[]'::jsonb),
+    'tasks', coalesce((select jsonb_agg(to_jsonb(source)) from public.tasks source), '[]'::jsonb),
+    'task_assignees', coalesce((select jsonb_agg(to_jsonb(source)) from public.task_assignees source), '[]'::jsonb),
+    'works', coalesce((select jsonb_agg(to_jsonb(source)) from public.works source), '[]'::jsonb),
+    'work_assignees', coalesce((select jsonb_agg(to_jsonb(source)) from public.work_assignees source), '[]'::jsonb),
+    'work_files', coalesce((select jsonb_agg(to_jsonb(source)) from public.work_files source), '[]'::jsonb),
+    'assets', coalesce((select jsonb_agg(to_jsonb(source)) from public.assets source), '[]'::jsonb),
+    'comments', coalesce((select jsonb_agg(to_jsonb(source)) from public.comments source), '[]'::jsonb)
+  );
+$$;
+
+revoke all on function public.bo9jeong_read_snapshot() from public;
+grant execute on function public.bo9jeong_read_snapshot() to anon, authenticated;
+
 alter table public.people enable row level security;
 alter table public.projects enable row level security;
 alter table public.project_assignees enable row level security;

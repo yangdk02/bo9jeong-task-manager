@@ -4,6 +4,7 @@ import path from "node:path";
 import { parse } from "csv-parse/sync";
 import { tableSchemas, type TableName, type TableRow } from "@/lib/domain/schemas";
 import { getDatabaseClient, usesPostgres, withDataWriteLock } from "@/lib/server/data-backend";
+import { readSupabaseSnapshot, usesSupabaseDataApi, type DatabaseSnapshot } from "@/lib/server/supabase-snapshot";
 
 const projectRoot = process.cwd();
 const localDataDirectory = path.join(projectRoot, "data", "local");
@@ -63,9 +64,14 @@ export async function readTables<const K extends readonly TableName[]>(tables: K
     return Promise.all(tables.map((table) => readLocalTable(table))) as Promise<{ [I in keyof K]: TableRow<K[I]>[] }>;
   }
 
-  const pairs = tables.map((table) => `'${table}', coalesce((select json_agg(row_to_json(source)) from "${table}" source), '[]'::json)`).join(", ");
-  const result = await getDatabaseClient().unsafe(`select json_build_object(${pairs})::text`).values();
-  const snapshot = JSON.parse(String(result[0]?.[0] ?? "{}")) as Record<TableName, Record<string, unknown>[]>;
+  let snapshot: DatabaseSnapshot;
+  if (usesSupabaseDataApi()) {
+    snapshot = await readSupabaseSnapshot();
+  } else {
+    const pairs = tables.map((table) => `'${table}', coalesce((select json_agg(row_to_json(source)) from "${table}" source), '[]'::json)`).join(", ");
+    const result = await getDatabaseClient().unsafe(`select json_build_object(${pairs})::text`).values();
+    snapshot = JSON.parse(String(result[0]?.[0] ?? "{}")) as DatabaseSnapshot;
+  }
   return Promise.all(tables.map((table) => validateDatabaseRows(table, snapshot[table] ?? []))) as Promise<{ [I in keyof K]: TableRow<K[I]>[] }>;
 }
 
