@@ -23,7 +23,7 @@ Vercel 실행 환경에서는 로컬 파일 쓰기가 유지되지 않으므로 
 npm run setup:supabase
 ```
 
-기존 Supabase 데이터가 있으면 seed를 덮어쓰지 않는다. `--force`는 전체 샘플 초기화가 명시적으로 필요할 때만 직접 실행한다.
+기존 Supabase 데이터가 있으면 seed를 덮어쓰지 않는다. `--force`는 전체 샘플 초기화가 명시적으로 필요할 때만 직접 실행한다. Vercel에서는 연결 환경변수가 있으면 첫 빌드에서 같은 초기화가 자동 실행된다.
 
 5. Vercel에서 GitHub 저장소를 Import한다.
 6. Supabase Marketplace 연동 또는 Project Settings에서 다음 환경변수를 연결한다.
@@ -31,7 +31,7 @@ npm run setup:supabase
 ```text
 POSTGRES_URL
 SUPABASE_URL
-SUPABASE_SECRET_KEY
+SUPABASE_SECRET_KEY 또는 SUPABASE_ANON_KEY
 SUPABASE_STORAGE_BUCKET=bo9jeong-files
 ```
 

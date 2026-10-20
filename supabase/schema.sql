@@ -118,3 +118,18 @@ revoke all on table public.people, public.projects, public.project_assignees, pu
   public.task_assignees, public.works, public.work_assignees, public.work_files,
   public.assets, public.comments from anon, authenticated;
 
+insert into storage.buckets (id, name, public)
+values ('bo9jeong-files', 'bo9jeong-files', false)
+on conflict (id) do update set public = excluded.public;
+
+grant usage on schema storage to anon;
+grant select, insert, update, delete on table storage.objects to anon;
+
+drop policy if exists "bo9jeong anon storage access" on storage.objects;
+create policy "bo9jeong anon storage access"
+on storage.objects
+for all
+to anon
+using (bucket_id = 'bo9jeong-files')
+with check (bucket_id = 'bo9jeong-files');
+

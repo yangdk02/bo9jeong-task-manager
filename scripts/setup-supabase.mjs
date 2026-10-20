@@ -10,13 +10,22 @@ const projectRoot = path.resolve(scriptDirectory, "..");
 const seedDirectory = path.join(projectRoot, "data", "seed");
 const seedFileDirectory = path.join(projectRoot, "data", "seed-files");
 const force = process.argv.includes("--force");
+const ifConfigured = process.argv.includes("--if-configured");
 const connectionString = process.env.POSTGRES_URL?.trim() || process.env.DATABASE_URL?.trim();
 const supabaseUrl = process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-const supabaseKey = process.env.SUPABASE_SECRET_KEY?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+const supabaseKey =
+  process.env.SUPABASE_SECRET_KEY?.trim() ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+  process.env.SUPABASE_ANON_KEY?.trim() ||
+  process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
 const bucket = process.env.SUPABASE_STORAGE_BUCKET?.trim() || "bo9jeong-files";
 
 if (!connectionString || !supabaseUrl || !supabaseKey) {
-  throw new Error("POSTGRES_URL, SUPABASE_URL, SUPABASE_SECRET_KEY 환경변수가 필요합니다.");
+  if (ifConfigured) {
+    console.log("Supabase environment variables are not configured. Remote setup skipped.");
+    process.exit(0);
+  }
+  throw new Error("POSTGRES_URL, SUPABASE_URL, Supabase API key 환경변수가 필요합니다.");
 }
 
 const database = postgres(connectionString, { max: 1, prepare: false });
@@ -49,9 +58,6 @@ try {
       }
     });
   }
-
-  const { error: bucketError } = await storage.storage.createBucket(bucket, { public: false });
-  if (bucketError && !/already exists|duplicate/i.test(bucketError.message)) throw bucketError;
 
   const manifest = JSON.parse(await readFile(path.join(seedFileDirectory, "manifest.json"), "utf8"));
   let uploaded = 0;
