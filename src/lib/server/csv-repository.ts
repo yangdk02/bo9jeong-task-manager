@@ -30,10 +30,11 @@ export async function readTable<K extends TableName>(table: K): Promise<TableRow
     const template = await readFile(path.join(templateDirectory, `${table}.csv`), "utf8");
     const headers = template.replace(/^\uFEFF/, "").split(/\r?\n/, 1)[0].split(",");
     const selectedColumns = headers.map((header) => `"${header}"`).join(", ");
-    const valueRows = await getDatabaseClient()
-      .unsafe<Record<string, unknown>[]>(`select ${selectedColumns} from "${table}"`)
-      .values();
-    return valueRows.map((values, index) => {
+    const encodedRows = await getDatabaseClient()
+      .unsafe<Record<string, unknown>[]>(`select json_build_array(${selectedColumns})::text as data_json from "${table}"`);
+    return encodedRows.map((encodedRow, index) => {
+      const encodedValues = Object.values(encodedRow)[0];
+      const values = JSON.parse(String(encodedValues)) as unknown[];
       const row = Object.fromEntries(headers.map((header, columnIndex) => [header, databaseCell(header, values[columnIndex])]));
       const result = tableSchemas[table].safeParse(row);
       if (!result.success) {
@@ -68,9 +69,10 @@ function csvCell(value: unknown) {
 }
 
 function databaseCell(header: string, value: unknown) {
+  if (value === null || value === undefined) return "";
   if (header.endsWith("_date")) {
-    if (value instanceof Date) return value.toISOString().slice(0, 10);
-    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+    const date = String(value).match(/\d{4}-\d{2}-\d{2}/)?.[0];
+    if (date) return date;
   }
   if (header.endsWith("_at") && value instanceof Date) return value.toISOString();
   return value;
