@@ -30,11 +30,10 @@ export async function readTable<K extends TableName>(table: K): Promise<TableRow
     const template = await readFile(path.join(templateDirectory, `${table}.csv`), "utf8");
     const headers = template.replace(/^\uFEFF/, "").split(/\r?\n/, 1)[0].split(",");
     const selectedColumns = headers.map((header) => `"${header}"`).join(", ");
-    const encodedRows = await getDatabaseClient()
-      .unsafe<Record<string, unknown>[]>(`select json_build_array(${selectedColumns})::text as data_json from "${table}"`);
-    return encodedRows.map((encodedRow, index) => {
-      const encodedValues = Object.values(encodedRow)[0];
-      const values = JSON.parse(String(encodedValues)) as unknown[];
+    const valuesRows = await getDatabaseClient()
+      .unsafe(`select ${selectedColumns} from "${table}"`)
+      .values();
+    return valuesRows.map((values, index) => {
       const row = Object.fromEntries(headers.map((header, columnIndex) => [header, databaseCell(header, values[columnIndex])]));
       const result = tableSchemas[table].safeParse(row);
       if (!result.success) {
