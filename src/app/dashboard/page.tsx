@@ -31,7 +31,7 @@ export default async function DashboardPage() {
       <section className="content-section">
         <div className="section-heading"><div><p className="eyebrow">PROJECTS</p><h2>프로젝트별 진행률</h2></div><span>{data.projectProgress.length}개 프로젝트</span></div>
         {data.projectProgress.length === 0 ? <div className="empty-state">등록된 프로젝트가 없습니다.</div> : <div className="project-grid">{data.projectProgress.map((item) => <Link className="project-card project-card-link" href={`/projects/${item.project.project_id}`} key={item.project.project_id}>
-          <div className="project-top"><span>{item.project.vendor_name}</span><strong>{item.percent}%</strong></div><h3>{item.project.project_name}</h3><div className="progress-track"><span style={{ width: `${item.percent}%` }} /></div><dl><div><dt>목표</dt><dd>{item.target}건</dd></div><div><dt>완료</dt><dd>{item.completed}건</dd></div><div><dt>남음</dt><dd>{item.remaining}건</dd></div></dl>
+          <div className="project-top"><span>{item.project.vendor_name}</span><strong>{item.percent}%</strong></div><h3>{item.project.project_name}</h3><div className={`progress-track ${item.percent >= 100 ? "is-complete" : "is-incomplete"}`}><span style={{ width: `${item.percent}%` }} /></div><dl><div><dt>목표</dt><dd>{item.target}건</dd></div><div><dt>완료</dt><dd>{item.completed}건</dd></div><div><dt>남음</dt><dd>{item.remaining}건</dd></div></dl>
         </Link>)}</div>}
       </section>
       <section className="content-section recent-section">

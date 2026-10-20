@@ -45,8 +45,8 @@ export function ProjectListView({ items, monthKey }: { items: ProjectListItem[];
           <td><strong>{item.project.vendor_name}</strong><span className="project-name">{item.project.project_name}</span></td>
           <td>{displayDate(item.project.start_date)}<small>– {displayDate(item.project.end_date)}</small></td>
           <td><div className="mini-chip-row">{item.departments.map((department) => <span className="mini-chip" key={department}>{department}</span>)}</div></td>
-          <td><strong>월간 {item.monthlyTaskCount}</strong><small>일회성 {item.onceTaskCount}</small></td>
-          <td><div className="list-progress"><div><span style={{ width: `${item.percent}%` }} /></div><strong>{item.completed} / {item.target}</strong></div></td>
+          <td><span className="cycle-count cycle-monthly">월간 {item.monthlyTaskCount}</span><span className="cycle-count cycle-once">일회성 {item.onceTaskCount}</span></td>
+          <td><div className={`list-progress ${item.percent >= 100 ? "is-complete" : "is-incomplete"}`}><div><span style={{ width: `${item.percent}%` }} /></div><strong>{item.completed} / {item.target}</strong></div></td>
           <td><span className={`project-status status-${item.project.status}`}>{statusLabels[item.project.status]}</span></td>
         </tr>})}</tbody>
       </table>

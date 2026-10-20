@@ -11,7 +11,7 @@ export default async function LandingPage() {
     <section className="landing-visual" aria-label="보구정 업무 흐름 이미지">
       <Image src="/images/landing-workflow.png" alt="연결된 프로젝트 과업과 작업을 표현한 일러스트" fill priority sizes="(max-width: 860px) 100vw, 50vw" />
       <div className="landing-visual-overlay">
-        <span>BO9JEONG WORKSPACE</span>
+        <span>BO9JEONG TASK MANAGER</span>
         <h2>흩어진 과업을<br />하나의 흐름으로.</h2>
         <p>프로젝트부터 작업 증빙까지, 팀의 실행을 명확하게 연결합니다.</p>
       </div>
@@ -25,7 +25,6 @@ export default async function LandingPage() {
         <LandingPersonPicker people={people} />
         <p className="privacy-note"><span aria-hidden="true">●</span> 선택한 담당자는 이 브라우저에만 저장됩니다.</p>
       </div>
-      <p className="landing-footer">보구정의 더 나은 실행을 위한 로컬 워크스페이스</p>
     </section>
   </main>;
 }

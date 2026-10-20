@@ -27,7 +27,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ tas
         <div>
           <p className="detail-breadcrumb"><Link href="/projects">프로젝트</Link><span>›</span><Link href={`/projects/${data.project.project_id}`}>{data.project.vendor_name}</Link><span>›</span>{data.task.task.task_name}</p>
           <div className="detail-title-row"><h1>{data.task.task.task_name}</h1><span className={`project-status status-${data.task.task.status}`}>{taskStatusLabels[data.task.task.status]}</span></div>
-          <p>{data.task.task.target_scope} · {data.task.task.cycle === "monthly" ? "월간 반복" : "일회성"}</p>
+          <p>{data.task.task.target_scope} · <span className={`cycle-label cycle-${data.task.task.cycle}`}>{data.task.task.cycle === "monthly" ? "월간 반복" : "일회성"}</span></p>
         </div>
         <div className="detail-actions"><Link className="btn-accent" href={`/projects/${data.project.project_id}/works/new?taskId=${taskId}`}>작업 등록</Link><Link href={`/tasks/${taskId}/edit`}>과업 수정</Link><EntityDeleteButton endpoint={`/api/tasks/${taskId}`} label="과업 삭제" redirectTo={`/projects/${data.project.project_id}`} message="이 과업과 연결된 모든 작업을 삭제할까요? 이 작업은 되돌릴 수 없습니다." /></div>
       </header>
@@ -35,7 +35,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ tas
         <div><span>목표</span><strong>{data.task.task.target_count}{data.task.task.target_unit}</strong></div>
         <div><span>완료 작업</span><strong>{completed}{data.task.task.target_unit}</strong></div>
         <div><span>남은 목표</span><strong>{remaining}{data.task.task.target_unit}</strong></div>
-        <div className="task-detail-progress"><span><i style={{ width: `${percent}%` }} /></span><strong>{percent}%</strong></div>
+        <div className={`task-detail-progress ${percent >= 100 ? "is-complete" : "is-incomplete"}`}><span><i style={{ width: `${percent}%` }} /></span><strong>{percent}%</strong></div>
       </section>
       <section className="content-section">
         <div className="section-heading"><div><p className="eyebrow">WORKS</p><h2>{data.task.task.cycle === "monthly" ? `${Number(data.monthKey.split("-")[1])}월 작업` : "전체 작업"}</h2></div><span>{works.length}개</span></div>
