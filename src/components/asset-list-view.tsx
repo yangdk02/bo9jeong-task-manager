@@ -12,6 +12,7 @@ function fileUrl(filePath: string) {
   if (segments[0] === "storage") segments.shift();
   return `/api/files/${segments.map(encodeURIComponent).join("/")}`;
 }
+function isImage(fileName: string) { return /\.(png|jpe?g|gif|webp|svg)$/i.test(fileName); }
 
 export function AssetListView({ items }: { items: AssetListItem[] }) {
   const [query, setQuery] = useState("");
@@ -33,7 +34,7 @@ export function AssetListView({ items }: { items: AssetListItem[] }) {
     </div>
     <div className="section-heading asset-result-heading"><div><p className="eyebrow">ASSETS</p><h2>검색 결과</h2></div><span>{filtered.length}개 자료</span></div>
     {filtered.length === 0 ? <div className="empty-state">조건에 맞는 자료가 없습니다.</div> : <div className="asset-grid">{filtered.map((item) => <Link className="asset-card" href={`/assets/${item.asset.asset_id}`} key={item.asset.asset_id}>
-      <Image src={fileUrl(item.asset.file_path)} width={520} height={340} alt={item.asset.asset_name} unoptimized />
+      {isImage(item.asset.file_name) ? <Image src={fileUrl(item.asset.file_path)} width={520} height={340} alt={item.asset.asset_name} unoptimized /> : <div className="asset-card-file"><strong>{item.asset.file_name.split(".").pop()?.toUpperCase()}</strong><span>{item.asset.file_name}</span></div>}
       <div><div className="asset-card-meta"><span>{item.asset.asset_category}</span><span className={`project-status status-${item.asset.status}`}>{statuses[item.asset.status]}</span></div><h3>{item.asset.asset_name}</h3><p>{item.project.vendor_name} · {item.asset.version}</p><small>{item.owner ? `${item.owner.name} · ${item.owner.department}` : "담당자 미지정"}</small></div>
     </Link>)}</div>}
   </>;

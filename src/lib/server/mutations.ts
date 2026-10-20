@@ -43,9 +43,22 @@ export const workInputSchema = z.object({
   actor_id: z.string().min(1),
 });
 
+const assetCategories = ["로고", "로고 배치 가이드", "브랜드 가이드", "패키지 시안", "카드뉴스", "배너", "썸네일", "상세페이지", "사진 원본", "영상 원본", "보고서", "기타"] as const;
+export const assetInputSchema = z.object({
+  project_id: z.string().min(1),
+  asset_name: z.string().trim().min(1, "자료명을 입력해 주세요."),
+  asset_category: z.enum(assetCategories),
+  version: z.string().trim().min(1, "버전을 입력해 주세요."),
+  status: projectStatusSchema,
+  note: z.string().trim().default(""),
+  owner_person_id: z.string().default(""),
+  actor_id: z.string().min(1),
+});
+
 export type ProjectInput = z.input<typeof projectInputSchema>;
 export type TaskInput = z.input<typeof taskInputSchema>;
 export type WorkInput = z.input<typeof workInputSchema>;
+export type AssetInput = z.input<typeof assetInputSchema>;
 
 let mutationQueue = Promise.resolve();
 function locked<T>(operation: () => Promise<T>) {
@@ -148,7 +161,7 @@ export async function deleteTask(taskId: string) {
   });
 }
 
-const allowedExtensions = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".csv", ".zip", ".mp4", ".mov", ".avi", ".webm"]);
+const allowedExtensions = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".csv", ".zip", ".mp4", ".mov", ".avi", ".webm", ".ai", ".psd", ".indd"]);
 async function saveFiles(workId: string, actorId: string, files: File[]) {
   const created: TableRow<"work_files">[] = [];
   try {
@@ -167,6 +180,72 @@ async function saveFiles(workId: string, actorId: string, files: File[]) {
     await Promise.all(created.map((file) => removePhysicalFiles([file.file_path])));
     throw error;
   }
+}
+
+async function saveAssetFile(assetId: string, projectId: string, actorId: string, file: File) {
+  if (!file.size) throw new Error("자료 파일을 선택해 주세요.");
+  const extension = path.extname(file.name).toLowerCase();
+  if (!allowedExtensions.has(extension)) throw new Error(`${file.name}: 지원하지 않는 파일 형식입니다.`);
+  const safeName = path.basename(file.name).replace(/[^0-9A-Za-z가-힣._-]/g, "_");
+  const filePath = path.posix.join("storage", "assets", projectId, `${assetId}_${randomUUID().replaceAll("-", "").slice(0, 8)}_${safeName}`);
+  await saveStoredFile(filePath, Buffer.from(await file.arrayBuffer()), file.type || undefined);
+  return { file_path: filePath, file_name: file.name, uploaded_by: actorId, uploaded_at: now() };
+}
+
+export async function createAsset(raw: unknown, file?: File) {
+  return locked(async () => {
+    const input = assetInputSchema.parse(raw);
+    const [people, projects, assets, comments] = await readTables(["people", "projects", "assets", "comments"]);
+    ensureActor(people, input.actor_id);
+    if (input.owner_person_id) ensureAssignees(people, [input.owner_person_id]);
+    if (!projects.some((project) => project.project_id === input.project_id)) throw new Error("프로젝트를 찾을 수 없습니다.");
+    if (!file) throw new Error("자료 파일을 선택해 주세요.");
+
+    const assetId = id("asset");
+    const stored = await saveAssetFile(assetId, input.project_id, input.actor_id, file);
+    const timestamp = now();
+    const asset: TableRow<"assets"> = { asset_id: assetId, project_id: input.project_id, asset_name: input.asset_name, asset_category: input.asset_category, version: input.version, ...stored, status: input.status, note: input.note, owner_person_id: input.owner_person_id };
+    try {
+      await writeTables({ assets: [...assets, asset], comments: [...comments, { comment_id: id("comment"), target_type: "asset", target_id: assetId, author_person_id: input.actor_id, comment_type: "system", body: "자료가 등록되었습니다.", created_at: timestamp }] });
+    } catch (error) {
+      await removeStoredFiles([stored.file_path]);
+      throw error;
+    }
+    return assetId;
+  });
+}
+
+export async function updateAsset(assetId: string, raw: unknown, file?: File) {
+  return locked(async () => {
+    const input = assetInputSchema.parse(raw);
+    const [people, projects, assets, comments] = await readTables(["people", "projects", "assets", "comments"]);
+    ensureActor(people, input.actor_id);
+    if (input.owner_person_id) ensureAssignees(people, [input.owner_person_id]);
+    if (!projects.some((project) => project.project_id === input.project_id)) throw new Error("프로젝트를 찾을 수 없습니다.");
+    const existing = assets.find((asset) => asset.asset_id === assetId);
+    if (!existing) throw new Error("자료를 찾을 수 없습니다.");
+
+    const stored = file?.size ? await saveAssetFile(assetId, input.project_id, input.actor_id, file) : undefined;
+    const next: TableRow<"assets"> = { ...existing, project_id: input.project_id, asset_name: input.asset_name, asset_category: input.asset_category, version: input.version, status: input.status, note: input.note, owner_person_id: input.owner_person_id, ...(stored ?? {}) };
+    const timestamp = now();
+    try {
+      await writeTables({ assets: assets.map((asset) => asset.asset_id === assetId ? next : asset), comments: [...comments, { comment_id: id("comment"), target_type: "asset", target_id: assetId, author_person_id: input.actor_id, comment_type: "system", body: stored ? "자료 정보와 파일이 수정되었습니다." : "자료 정보가 수정되었습니다.", created_at: timestamp }] });
+    } catch (error) {
+      if (stored) await removeStoredFiles([stored.file_path]);
+      throw error;
+    }
+    if (stored && stored.file_path !== existing.file_path) await removeStoredFiles([existing.file_path]);
+  });
+}
+
+export async function deleteAsset(assetId: string) {
+  return locked(async () => {
+    const [assets, comments] = await readTables(["assets", "comments"]);
+    const existing = assets.find((asset) => asset.asset_id === assetId);
+    if (!existing) throw new Error("자료를 찾을 수 없습니다.");
+    await writeTables({ assets: assets.filter((asset) => asset.asset_id !== assetId), comments: comments.filter((comment) => !(comment.target_type === "asset" && comment.target_id === assetId)) });
+    await removeStoredFiles([existing.file_path]);
+  });
 }
 
 export async function createWork(raw: unknown, files: File[] = []) {
