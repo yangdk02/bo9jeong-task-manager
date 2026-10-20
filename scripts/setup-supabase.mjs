@@ -38,6 +38,7 @@ try {
   console.log("Supabase schema ready.");
 
   const [{ count }] = await database`select count(*)::int as count from people`;
+  const shouldSeedFiles = count === 0 || force;
   if (count > 0 && !force) {
     console.log("Existing data detected. Seed import skipped. Use --force only when a full reset is intended.");
   } else {
@@ -59,16 +60,20 @@ try {
     });
   }
 
-  const manifest = JSON.parse(await readFile(path.join(seedFileDirectory, "manifest.json"), "utf8"));
-  let uploaded = 0;
-  for (const [logicalPath, seedFile] of Object.entries(manifest.files)) {
-    const objectPath = logicalPath.replace(/^storage\//, "");
-    const contents = await readFile(path.join(seedFileDirectory, seedFile));
-    const { error } = await storage.storage.from(bucket).upload(objectPath, contents, { contentType: "image/png", upsert: force });
-    if (error && !/already exists|duplicate/i.test(error.message)) throw error;
-    if (!error) uploaded += 1;
+  if (shouldSeedFiles) {
+    const manifest = JSON.parse(await readFile(path.join(seedFileDirectory, "manifest.json"), "utf8"));
+    let uploaded = 0;
+    for (const [logicalPath, seedFile] of Object.entries(manifest.files)) {
+      const objectPath = logicalPath.replace(/^storage\//, "");
+      const contents = await readFile(path.join(seedFileDirectory, seedFile));
+      const { error } = await storage.storage.from(bucket).upload(objectPath, contents, { contentType: "image/png", upsert: force });
+      if (error && !/already exists|duplicate/i.test(error.message)) throw error;
+      if (!error) uploaded += 1;
+    }
+    console.log(`Storage bucket ready: ${bucket} (${uploaded} files uploaded)`);
+  } else {
+    console.log(`Existing data detected. Storage seed upload skipped: ${bucket}`);
   }
-  console.log(`Storage bucket ready: ${bucket} (${uploaded} files uploaded)`);
 } finally {
   await database.end();
 }

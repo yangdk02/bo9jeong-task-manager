@@ -27,11 +27,16 @@ async function ensureLocalTable(table: TableName) {
 
 export async function readTable<K extends TableName>(table: K): Promise<TableRow<K>[]> {
   if (usesPostgres()) {
-    const rows = await getDatabaseClient().unsafe(`select * from "${table}"`);
-    return rows.map((row, index) => {
+    const encodedRows = await getDatabaseClient().unsafe(`select row_to_json(source) as data from "${table}" source`);
+    return encodedRows.map((encodedRow, index) => {
+      const encodedRecord = encodedRow as Record<string, unknown>;
+      const rawRow = encodedRecord.data ?? Object.values(encodedRecord)[0];
+      const row = typeof rawRow === "string" ? JSON.parse(rawRow) : rawRow;
       const result = tableSchemas[table].safeParse(row);
       if (!result.success) {
-        throw new Error(`${table} 테이블 ${index + 1}번째 데이터의 형식이 올바르지 않습니다: ${result.error.issues[0]?.message ?? "알 수 없는 오류"}`);
+        const issue = result.error.issues[0];
+        const field = issue?.path.join(".") || "행";
+        throw new Error(`${table} 테이블 ${index + 1}번째 데이터의 ${field} 형식이 올바르지 않습니다: ${issue?.message ?? "알 수 없는 오류"}`);
       }
       return result.data as TableRow<K>;
     });
