@@ -1,5 +1,5 @@
 import type { Person, Project, Task, Work, WorkFile, TableRow } from "@/lib/domain/schemas";
-import { readTable } from "@/lib/server/csv-repository";
+import { readTables } from "@/lib/server/csv-repository";
 
 export type WorkDetailComment = {
   comment: TableRow<"comments">;
@@ -18,14 +18,8 @@ export type WorkDetailData = {
 };
 
 export async function getWorkDetailData(workId: string): Promise<WorkDetailData | undefined> {
-  const [people, projects, tasks, works, workAssignees, workFiles, comments] = await Promise.all([
-    readTable("people"),
-    readTable("projects"),
-    readTable("tasks"),
-    readTable("works"),
-    readTable("work_assignees"),
-    readTable("work_files"),
-    readTable("comments"),
+  const [people, projects, tasks, works, workAssignees, workFiles, comments] = await readTables([
+    "people", "projects", "tasks", "works", "work_assignees", "work_files", "comments",
   ]);
 
   const work = works.find((item) => item.work_id === workId);

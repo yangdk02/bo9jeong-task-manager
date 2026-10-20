@@ -1,5 +1,5 @@
 import type { Person, Project, Task, Work, WorkFile } from "@/lib/domain/schemas";
-import { readTable } from "@/lib/server/csv-repository";
+import { readTables } from "@/lib/server/csv-repository";
 
 export type ReportProject = {
   project: Project;
@@ -8,9 +8,7 @@ export type ReportProject = {
 };
 
 export async function getReportSetupData(): Promise<{ people: Person[]; projects: ReportProject[] }> {
-  const [people, projects, tasks, works, workFiles] = await Promise.all([
-    readTable("people"), readTable("projects"), readTable("tasks"), readTable("works"), readTable("work_files"),
-  ]);
+  const [people, projects, tasks, works, workFiles] = await readTables(["people", "projects", "tasks", "works", "work_files"]);
   return {
     people,
     projects: projects.map((project) => {

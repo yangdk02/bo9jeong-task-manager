@@ -25,27 +25,7 @@ async function ensureLocalTable(table: TableName) {
   return destination;
 }
 
-export async function readTable<K extends TableName>(table: K): Promise<TableRow<K>[]> {
-  if (usesPostgres()) {
-    const template = await readFile(path.join(templateDirectory, `${table}.csv`), "utf8");
-    const headers = template.replace(/^\uFEFF/, "").split(/\r?\n/, 1)[0].split(",");
-    const result = await getDatabaseClient()
-      .unsafe(`select coalesce(json_agg(row_to_json(source)), '[]'::json)::text from "${table}" source`)
-      .values();
-    const encodedRows = result[0]?.[0];
-    const rows = JSON.parse(String(encodedRows ?? "[]")) as Record<string, unknown>[];
-    return rows.map((source, index) => {
-      const row = Object.fromEntries(headers.map((header) => [header, databaseCell(header, source[header])]));
-      const result = tableSchemas[table].safeParse(row);
-      if (!result.success) {
-        const issue = result.error.issues[0];
-        const field = issue?.path.join(".") || "행";
-        throw new Error(`${table} 테이블 ${index + 1}번째 데이터의 ${field} 형식이 올바르지 않습니다: ${issue?.message ?? "알 수 없는 오류"}`);
-      }
-      return result.data as TableRow<K>;
-    });
-  }
-
+async function readLocalTable<K extends TableName>(table: K): Promise<TableRow<K>[]> {
   const filePath = await ensureLocalTable(table);
   const source = await readFile(filePath, "utf8");
   const rows = parse(source, {
@@ -61,6 +41,37 @@ export async function readTable<K extends TableName>(table: K): Promise<TableRow
     }
     return result.data as TableRow<K>;
   });
+}
+
+async function validateDatabaseRows<K extends TableName>(table: K, rows: Record<string, unknown>[]): Promise<TableRow<K>[]> {
+  const template = await readFile(path.join(templateDirectory, `${table}.csv`), "utf8");
+  const headers = template.replace(/^\uFEFF/, "").split(/\r?\n/, 1)[0].split(",");
+  return rows.map((source, index) => {
+    const row = Object.fromEntries(headers.map((header) => [header, databaseCell(header, source[header])]));
+    const result = tableSchemas[table].safeParse(row);
+    if (!result.success) {
+      const issue = result.error.issues[0];
+      const field = issue?.path.join(".") || "행";
+      throw new Error(`${table} 테이블 ${index + 1}번째 데이터의 ${field} 형식이 올바르지 않습니다: ${issue?.message ?? "알 수 없는 오류"}`);
+    }
+    return result.data as TableRow<K>;
+  });
+}
+
+export async function readTables<const K extends readonly TableName[]>(tables: K): Promise<{ [I in keyof K]: TableRow<K[I]>[] }> {
+  if (!usesPostgres()) {
+    return Promise.all(tables.map((table) => readLocalTable(table))) as Promise<{ [I in keyof K]: TableRow<K[I]>[] }>;
+  }
+
+  const pairs = tables.map((table) => `'${table}', coalesce((select json_agg(row_to_json(source)) from "${table}" source), '[]'::json)`).join(", ");
+  const result = await getDatabaseClient().unsafe(`select json_build_object(${pairs})::text`).values();
+  const snapshot = JSON.parse(String(result[0]?.[0] ?? "{}")) as Record<TableName, Record<string, unknown>[]>;
+  return Promise.all(tables.map((table) => validateDatabaseRows(table, snapshot[table] ?? []))) as Promise<{ [I in keyof K]: TableRow<K[I]>[] }>;
+}
+
+export async function readTable<K extends TableName>(table: K): Promise<TableRow<K>[]> {
+  const [rows] = await readTables([table]);
+  return rows;
 }
 
 function csvCell(value: unknown) {

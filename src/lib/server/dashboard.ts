@@ -1,5 +1,5 @@
 import type { Person, Project, Task, Work } from "@/lib/domain/schemas";
-import { readTable } from "@/lib/server/csv-repository";
+import { readTables } from "@/lib/server/csv-repository";
 
 export type ProjectProgress = {
   project: Project;
@@ -58,13 +58,7 @@ export function calculateProjectProgress(
 
 export async function getDashboardData(date = new Date()): Promise<DashboardData> {
   const monthKey = seoulMonthKey(date);
-  const [people, projects, tasks, works, workFiles] = await Promise.all([
-    readTable("people"),
-    readTable("projects"),
-    readTable("tasks"),
-    readTable("works"),
-    readTable("work_files"),
-  ]);
+  const [people, projects, tasks, works, workFiles] = await readTables(["people", "projects", "tasks", "works", "work_files"]);
   const projectProgress = calculateProjectProgress(projects, tasks, works, monthKey);
   const personById = new Map(people.map((person) => [person.person_id, person]));
   const taskById = new Map(tasks.map((task) => [task.task_id, task]));

@@ -1,6 +1,6 @@
 import type { Person, Project, Task, Work } from "@/lib/domain/schemas";
 import { seoulMonthKey } from "@/lib/server/dashboard";
-import { readTable } from "@/lib/server/csv-repository";
+import { readTables } from "@/lib/server/csv-repository";
 
 export type ProjectListItem = {
   project: Project;
@@ -39,9 +39,7 @@ function completedForMonth(works: Work[], taskIds: Set<string>, monthKey: string
 
 export async function getProjectListData(date = new Date()) {
   const monthKey = seoulMonthKey(date);
-  const [people, projects, projectAssignees, tasks, works] = await Promise.all([
-    readTable("people"), readTable("projects"), readTable("project_assignees"), readTable("tasks"), readTable("works"),
-  ]);
+  const [people, projects, projectAssignees, tasks, works] = await readTables(["people", "projects", "project_assignees", "tasks", "works"]);
   const personById = new Map(people.map((person) => [person.person_id, person]));
 
   const items: ProjectListItem[] = projects.map((project) => {
@@ -70,9 +68,8 @@ export async function getProjectListData(date = new Date()) {
 
 export async function getProjectDetailData(projectId: string, date = new Date()): Promise<ProjectDetailData | undefined> {
   const monthKey = seoulMonthKey(date);
-  const [people, projects, projectAssignees, tasks, taskAssignees, works, workAssignees, workFiles] = await Promise.all([
-    readTable("people"), readTable("projects"), readTable("project_assignees"), readTable("tasks"),
-    readTable("task_assignees"), readTable("works"), readTable("work_assignees"), readTable("work_files"),
+  const [people, projects, projectAssignees, tasks, taskAssignees, works, workAssignees, workFiles] = await readTables([
+    "people", "projects", "project_assignees", "tasks", "task_assignees", "works", "work_assignees", "work_files",
   ]);
   const project = projects.find((item) => item.project_id === projectId);
   if (!project) return undefined;

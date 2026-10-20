@@ -1,5 +1,5 @@
 import type { Person, Project, TableRow } from "@/lib/domain/schemas";
-import { readTable } from "@/lib/server/csv-repository";
+import { readTables } from "@/lib/server/csv-repository";
 
 export type AssetListItem = {
   asset: TableRow<"assets">;
@@ -14,9 +14,7 @@ export type AssetDetailData = AssetListItem & {
 };
 
 export async function getAssetListData() {
-  const [people, projects, assets] = await Promise.all([
-    readTable("people"), readTable("projects"), readTable("assets"),
-  ]);
+  const [people, projects, assets] = await readTables(["people", "projects", "assets"]);
   const personById = new Map(people.map((person) => [person.person_id, person]));
   const projectById = new Map(projects.map((project) => [project.project_id, project]));
   const items = assets
@@ -30,10 +28,15 @@ export async function getAssetListData() {
 }
 
 export async function getAssetDetailData(assetId: string): Promise<AssetDetailData | undefined> {
-  const [{ people, items }, comments] = await Promise.all([getAssetListData(), readTable("comments")]);
+  const [people, projects, assets, comments] = await readTables(["people", "projects", "assets", "comments"]);
+  const personById = new Map(people.map((person) => [person.person_id, person]));
+  const projectById = new Map(projects.map((project) => [project.project_id, project]));
+  const items = assets.flatMap((asset) => {
+    const project = projectById.get(asset.project_id);
+    return project ? [{ asset, project, owner: personById.get(asset.owner_person_id), uploader: personById.get(asset.uploaded_by) }] : [];
+  });
   const item = items.find(({ asset }) => asset.asset_id === assetId);
   if (!item) return undefined;
-  const personById = new Map(people.map((person) => [person.person_id, person]));
   return {
     ...item,
     people,

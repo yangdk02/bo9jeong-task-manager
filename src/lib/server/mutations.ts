@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { z } from "zod";
-import { projectStatusSchema, workStatusSchema, type TableName, type TableRow } from "@/lib/domain/schemas";
-import { readTable, writeTables } from "@/lib/server/csv-repository";
+import { projectStatusSchema, workStatusSchema, type TableRow } from "@/lib/domain/schemas";
+import { readTables, writeTables } from "@/lib/server/csv-repository";
 import { withDataWriteLock } from "@/lib/server/data-backend";
 import { removeStoredFiles, saveStoredFile } from "@/lib/server/storage-backend";
 
@@ -68,7 +68,7 @@ function ensureAssignees(people: TableRow<"people">[], ids: string[]) {
 export async function createProject(raw: ProjectInput) {
   return locked(async () => {
     const input = projectInputSchema.parse(raw);
-    const [people, projects, links] = await Promise.all([readTable("people"), readTable("projects"), readTable("project_assignees")]);
+    const [people, projects, links] = await readTables(["people", "projects", "project_assignees"]);
     ensureActor(people, input.actor_id); ensureAssignees(people, input.assignee_ids);
     const projectId = id("proj");
     const project: TableRow<"projects"> = { project_id: projectId, vendor_name: input.vendor_name, project_name: input.project_name, management_category: input.management_category, start_date: input.start_date, end_date: input.end_date, status: input.status, created_by: input.actor_id, created_at: now() };
@@ -80,7 +80,7 @@ export async function createProject(raw: ProjectInput) {
 export async function updateProject(projectId: string, raw: ProjectInput) {
   return locked(async () => {
     const input = projectInputSchema.parse(raw);
-    const [people, projects, links] = await Promise.all([readTable("people"), readTable("projects"), readTable("project_assignees")]);
+    const [people, projects, links] = await readTables(["people", "projects", "project_assignees"]);
     ensureActor(people, input.actor_id); ensureAssignees(people, input.assignee_ids);
     if (!projects.some((project) => project.project_id === projectId)) throw new Error("프로젝트를 찾을 수 없습니다.");
     await writeTables({
@@ -96,8 +96,7 @@ async function removePhysicalFiles(paths: string[]) {
 
 export async function deleteProject(projectId: string) {
   return locked(async () => {
-    const names: TableName[] = ["projects", "project_assignees", "tasks", "task_assignees", "works", "work_assignees", "work_files", "assets", "comments"];
-    const [projects, projectLinks, tasks, taskLinks, works, workLinks, workFiles, assets, comments] = await Promise.all(names.map((name) => readTable(name))) as [TableRow<"projects">[], TableRow<"project_assignees">[], TableRow<"tasks">[], TableRow<"task_assignees">[], TableRow<"works">[], TableRow<"work_assignees">[], TableRow<"work_files">[], TableRow<"assets">[], TableRow<"comments">[]];
+    const [projects, projectLinks, tasks, taskLinks, works, workLinks, workFiles, assets, comments] = await readTables(["projects", "project_assignees", "tasks", "task_assignees", "works", "work_assignees", "work_files", "assets", "comments"]);
     if (!projects.some((project) => project.project_id === projectId)) throw new Error("프로젝트를 찾을 수 없습니다.");
     const taskIds = new Set(tasks.filter((task) => task.project_id === projectId).map((task) => task.task_id));
     const workIds = new Set(works.filter((work) => taskIds.has(work.task_id)).map((work) => work.work_id));
@@ -116,7 +115,7 @@ export async function deleteProject(projectId: string) {
 export async function createTask(raw: TaskInput) {
   return locked(async () => {
     const input = taskInputSchema.parse(raw);
-    const [people, projects, tasks, links] = await Promise.all([readTable("people"), readTable("projects"), readTable("tasks"), readTable("task_assignees")]);
+    const [people, projects, tasks, links] = await readTables(["people", "projects", "tasks", "task_assignees"]);
     ensureActor(people, input.actor_id); ensureAssignees(people, input.assignee_ids);
     if (!projects.some((project) => project.project_id === input.project_id)) throw new Error("프로젝트를 찾을 수 없습니다.");
     const taskId = id("task");
@@ -129,7 +128,7 @@ export async function createTask(raw: TaskInput) {
 export async function updateTask(taskId: string, raw: TaskInput) {
   return locked(async () => {
     const input = taskInputSchema.parse(raw);
-    const [people, projects, tasks, links] = await Promise.all([readTable("people"), readTable("projects"), readTable("tasks"), readTable("task_assignees")]);
+    const [people, projects, tasks, links] = await readTables(["people", "projects", "tasks", "task_assignees"]);
     ensureActor(people, input.actor_id); ensureAssignees(people, input.assignee_ids);
     const existing = tasks.find((task) => task.task_id === taskId);
     if (!existing) throw new Error("과업을 찾을 수 없습니다.");
@@ -140,7 +139,7 @@ export async function updateTask(taskId: string, raw: TaskInput) {
 
 export async function deleteTask(taskId: string) {
   return locked(async () => {
-    const [tasks, taskLinks, works, workLinks, workFiles, comments] = await Promise.all([readTable("tasks"), readTable("task_assignees"), readTable("works"), readTable("work_assignees"), readTable("work_files"), readTable("comments")]);
+    const [tasks, taskLinks, works, workLinks, workFiles, comments] = await readTables(["tasks", "task_assignees", "works", "work_assignees", "work_files", "comments"]);
     if (!tasks.some((task) => task.task_id === taskId)) throw new Error("과업을 찾을 수 없습니다.");
     const workIds = new Set(works.filter((work) => work.task_id === taskId).map((work) => work.work_id));
     const deletedPaths = workFiles.filter((file) => workIds.has(file.work_id)).map((file) => file.file_path);
@@ -173,7 +172,7 @@ async function saveFiles(workId: string, actorId: string, files: File[]) {
 export async function createWork(raw: unknown, files: File[] = []) {
   return locked(async () => {
     const input = workInputSchema.parse(raw);
-    const [people, tasks, works, links, workFiles, comments] = await Promise.all([readTable("people"), readTable("tasks"), readTable("works"), readTable("work_assignees"), readTable("work_files"), readTable("comments")]);
+    const [people, tasks, works, links, workFiles, comments] = await readTables(["people", "tasks", "works", "work_assignees", "work_files", "comments"]);
     ensureActor(people, input.actor_id); ensureAssignees(people, input.assignee_ids);
     if (!tasks.some((task) => task.task_id === input.task_id)) throw new Error("과업을 찾을 수 없습니다.");
     const workId = id("work"); const timestamp = now();
@@ -190,7 +189,7 @@ export async function createWork(raw: unknown, files: File[] = []) {
 export async function updateWork(workId: string, raw: unknown, files: File[] = []) {
   return locked(async () => {
     const input = workInputSchema.parse(raw);
-    const [people, tasks, works, links, workFiles, comments] = await Promise.all([readTable("people"), readTable("tasks"), readTable("works"), readTable("work_assignees"), readTable("work_files"), readTable("comments")]);
+    const [people, tasks, works, links, workFiles, comments] = await readTables(["people", "tasks", "works", "work_assignees", "work_files", "comments"]);
     ensureActor(people, input.actor_id); ensureAssignees(people, input.assignee_ids);
     if (!works.some((work) => work.work_id === workId)) throw new Error("작업을 찾을 수 없습니다.");
     if (!tasks.some((task) => task.task_id === input.task_id)) throw new Error("과업을 찾을 수 없습니다.");
@@ -204,7 +203,7 @@ export async function updateWork(workId: string, raw: unknown, files: File[] = [
 
 export async function deleteWork(workId: string) {
   return locked(async () => {
-    const [works, links, files, comments] = await Promise.all([readTable("works"), readTable("work_assignees"), readTable("work_files"), readTable("comments")]);
+    const [works, links, files, comments] = await readTables(["works", "work_assignees", "work_files", "comments"]);
     if (!works.some((work) => work.work_id === workId)) throw new Error("작업을 찾을 수 없습니다.");
     const deletedPaths = files.filter((file) => file.work_id === workId).map((file) => file.file_path);
     await writeTables({ works: works.filter((work) => work.work_id !== workId), work_assignees: links.filter((link) => link.work_id !== workId), work_files: files.filter((file) => file.work_id !== workId), comments: comments.filter((comment) => !(comment.target_type === "work" && comment.target_id === workId)) });
