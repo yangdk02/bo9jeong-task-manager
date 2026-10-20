@@ -1,0 +1,13 @@
+asset_id,project_id,asset_name,asset_category,version,file_path,file_name,status,note,owner_person_id,uploaded_by,uploaded_at
+AST-001,PRJ-2026-001,제주담음 로고 콘셉트,로고,v1,storage/assets/PRJ-2026-001/AST-001_jejudameum_logo_concept.png,AST-001_jejudameum_logo_concept.png,completed,브랜드 기본 로고 콘셉트,USR-005,USR-005,2026-09-02T10:00:00+09:00
+AST-002,PRJ-2026-001,감귤 선물세트 패키지 시안,패키지 시안,v2,storage/assets/PRJ-2026-001/AST-002_tangerine_package_v2.png,AST-002_tangerine_package_v2.png,active,친환경 크라프트 포장 시안,USR-005,USR-005,2026-09-08T14:20:00+09:00
+AST-003,PRJ-2026-001,제품 사진 활용 가이드,브랜드 가이드,v1,storage/assets/PRJ-2026-001/AST-003_brand_photo_guide.png,AST-003_brand_photo_guide.png,completed,따뜻한 자연광 이미지 기준,USR-003,USR-001,2026-09-10T11:00:00+09:00
+AST-004,PRJ-2026-001,10월 프로모션 배너,배너,v3,storage/assets/PRJ-2026-001/AST-004_october_banner.png,AST-004_october_banner.png,active,정기배송 홍보 배너 시안,USR-005,USR-003,2026-10-15T16:10:00+09:00
+AST-005,PRJ-2026-002,바람결카페 로고 콘셉트,로고,v1,storage/assets/PRJ-2026-002/AST-005_baramgyeol_logo_concept.png,AST-005_baramgyeol_logo_concept.png,completed,세이지 컬러 기본 콘셉트,USR-006,USR-006,2026-09-16T11:00:00+09:00
+AST-006,PRJ-2026-002,시트러스 메뉴 카드뉴스,카드뉴스,v2-final,storage/assets/PRJ-2026-002/AST-006_season_menu_cardnews.png,AST-006_season_menu_cardnews.png,completed,가을 시즌 메뉴 최종안,USR-018,USR-018,2026-10-02T15:30:00+09:00
+AST-007,PRJ-2026-002,카페 촬영 가이드,로고 배치 가이드,v1,storage/assets/PRJ-2026-002/AST-007_cafe_photo_guide.png,AST-007_cafe_photo_guide.png,active,자연광과 우드톤 기준,USR-006,USR-014,2026-09-20T10:20:00+09:00
+AST-008,PRJ-2026-002,겨울 프로모션 배너 초안,배너,v1,storage/assets/PRJ-2026-002/AST-008_winter_banner_draft.png,AST-008_winter_banner_draft.png,planned,겨울 메뉴 공개 전 초안,USR-006,USR-006,2026-10-18T17:00:00+09:00
+AST-009,PRJ-2026-003,숨비마을 로고 콘셉트,로고,v1,storage/assets/PRJ-2026-003/AST-009_sumbi_logo_concept.png,AST-009_sumbi_logo_concept.png,active,바다와 돌담을 활용한 콘셉트,USR-007,USR-007,2026-10-02T10:30:00+09:00
+AST-010,PRJ-2026-003,마을 브랜드 가이드,브랜드 가이드,v1,storage/assets/PRJ-2026-003/AST-010_village_brand_guide.png,AST-010_village_brand_guide.png,active,해양 문화 색상과 사진 기준,USR-010,USR-009,2026-10-04T13:00:00+09:00
+AST-011,PRJ-2026-003,관광 영상 썸네일,썸네일,v2,storage/assets/PRJ-2026-003/AST-011_tourism_thumbnail.png,AST-011_tourism_thumbnail.png,completed,해안 산책로 영상 대표 이미지,USR-007,USR-015,2026-10-11T12:00:00+09:00
+AST-012,PRJ-2026-003,해녀 체험 프로그램 포스터,기타,v1,storage/assets/PRJ-2026-003/AST-012_haenyeo_program_poster.png,AST-012_haenyeo_program_poster.png,planned,체험 일정 확정 전 시안,USR-007,USR-007,2026-10-19T15:20:00+09:00
