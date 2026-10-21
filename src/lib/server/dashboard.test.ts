@@ -45,7 +45,7 @@ describe("dashboard metrics", () => {
 
   it("reads the October sample data through the repository", async () => {
     const dashboard = await getDashboardData(new Date("2026-10-20T03:00:00Z"));
-    expect(dashboard.totals).toMatchObject({ target: 40, completed: 29, remaining: 11 });
+    expect(dashboard.totals).toMatchObject({ target: 40, completed: 31, remaining: 10, exceeded: 1, percent: 78 });
     expect(dashboard.projectProgress).toHaveLength(3);
     expect(dashboard.people).toHaveLength(20);
     expect(dashboard.recentWorks).toHaveLength(5);
@@ -58,7 +58,7 @@ describe("dashboard metrics", () => {
       readTable("work_assignees"), readTable("work_files"), readTable("assets"),
       readTable("comments"),
     ]);
-    expect(tables.map((rows) => rows.length)).toEqual([20, 3, 14, 11, 22, 45, 64, 46, 12, 30]);
+    expect(tables.map((rows) => rows.length)).toEqual([20, 3, 14, 11, 22, 47, 68, 46, 12, 32]);
   });
 
   it("builds project list progress from October sample work", async () => {
