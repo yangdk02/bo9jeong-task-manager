@@ -20,21 +20,41 @@ export function ReportSetupView({ projects, initialProjectId }: { projects: Repo
   const [comment, setComment] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
   const [showSources, setShowSources] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState("");
   const selected = projects.find((item) => item.project.project_id === projectId);
   const works = useMemo(() => selected?.works.filter((work) => work.status === "completed" && work.work_date >= startDate && work.work_date <= endDate) ?? [], [endDate, selected, startDate]);
   const pages = useMemo(() => {
     if (!selected) return [];
     return [
       { key: "cover", kind: "cover" as const, title: "표지 · 진행 내역", status: comment.trim() ? "자동 반영" : "작성 필요" },
-      ...selected.tasks.map((task) => {
+      ...selected.tasks.flatMap((task) => {
         const taskWorks = works.filter((work) => work.task_id === task.task_id);
         const missingEvidence = taskWorks.some((work) => work.files.length === 0);
-        return { key: task.task_id, kind: "task" as const, title: task.task_name, status: taskWorks.length === 0 ? "자료 없음" : missingEvidence ? "증빙 누락" : "자동 반영", task, works: taskWorks };
+        const chunks = taskWorks.length ? Array.from({ length: Math.ceil(taskWorks.length / 4) }, (_, index) => taskWorks.slice(index * 4, index * 4 + 4)) : [[]];
+        return chunks.map((chunk, index) => ({ key: `${task.task_id}-${index}`, kind: "task" as const, title: `${task.task_name}${chunks.length > 1 ? ` (${index + 1}/${chunks.length})` : ""}`, status: taskWorks.length === 0 ? "자료 없음" : missingEvidence ? "증빙 누락" : "자동 반영", task, works: chunk, taskWorkCount: taskWorks.length }));
       }),
     ];
   }, [comment, selected, works]);
   const current = pages[Math.min(pageIndex, Math.max(pages.length - 1, 0))];
   const issueCount = pages.filter((page) => page.status !== "자동 반영").length;
+
+  async function generateReport() {
+    if (!selected) return;
+    setGenerating(true); setError("");
+    const response = await fetch("/api/reports", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ project_id: projectId, start_date: startDate, end_date: endDate, comment }) });
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      setError(result.error ?? "보고서를 생성하지 못했습니다."); setGenerating(false); return;
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `보구정_결과보고서_${selected.project.vendor_name}_${startDate}_${endDate}.pptx`.replace(/[\\/:*?"<>|]/g, "_");
+    document.body.appendChild(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(url);
+    setGenerating(false);
+  }
 
   return <div className="report-builder">
     <section className="card report-form-card">
@@ -45,7 +65,7 @@ export function ReportSetupView({ projects, initialProjectId }: { projects: Repo
         <label><span>종료일</span><input type="date" min={startDate} value={endDate} onChange={(event) => { setEndDate(event.target.value); setPageIndex(0); }} /></label>
         <label><span>보고서 코멘트</span><input className="report-comment-input" type="text" value={comment} onChange={(event) => setComment(event.target.value)} placeholder="성과 요약이나 다음 달 제안 내용을 입력하세요." /></label>
       </div>
-      <div className="report-form-footer"><p className="form-note">보구정 A4 세로 양식이며, 과업 수에 따라 페이지가 자동 구성됩니다.</p><button className="btn-primary report-generate" type="button" disabled title="PPTX 생성 엔진은 다음 개발 단계에서 연결합니다.">편집 가능한 PPTX 생성</button></div>
+      <div className="report-form-footer"><div><p className="form-note">보구정 A4 세로 양식이며, 과업과 완료 실적 수에 따라 페이지가 자동 구성됩니다.</p>{error && <p className="form-error">{error}</p>}</div><button className="btn-primary report-generate" type="button" disabled={generating || !selected || startDate > endDate} onClick={generateReport}>{generating ? "PPTX 생성 중…" : "편집 가능한 PPTX 생성"}</button></div>
     </section>
 
     <section className="report-preview-shell" aria-label="보고서 미리보기">
@@ -63,7 +83,7 @@ export function ReportSetupView({ projects, initialProjectId }: { projects: Repo
             </> : <>
               <div className="report-paper-topline"><span>{current.task.target_scope.toUpperCase()} PERFORMANCE</span><span>{displayDate(startDate)} — {displayDate(endDate)}</span></div>
               <div className="report-task-title"><small>{selected.project.vendor_name}</small><h3>{current.task.task_name}</h3><p>{current.task.cycle === "monthly" ? "월간 반복 과업" : "일회성 과업"} · 목표 {current.task.target_count}{current.task.target_unit}</p></div>
-              <div className="report-task-summary source-area"><div><span>목표</span><strong>{current.task.target_count}{current.task.target_unit}</strong></div><div><span>완료</span><strong>{current.works.length}{current.task.target_unit}</strong></div><div><span>달성률</span><strong>{current.task.target_count ? Math.min(Math.round(current.works.length / current.task.target_count * 100), 100) : 0}%</strong></div></div>
+              <div className="report-task-summary source-area"><div><span>목표</span><strong>{current.task.target_count}{current.task.target_unit}</strong></div><div><span>완료</span><strong>{current.taskWorkCount}{current.task.target_unit}</strong></div><div><span>달성률</span><strong>{current.task.target_count ? Math.min(Math.round(current.taskWorkCount / current.task.target_count * 100), 100) : 0}%</strong></div></div>
               {current.works.length ? <div className="report-evidence-grid">{current.works.slice(0, 4).map((work) => { const evidence = work.files[0]; return <div className={evidence ? "source-area" : "source-area-missing"} key={work.work_id}>{evidence && isImage(evidence.file_name) ? <Image src={fileUrl(evidence.file_path)} width={300} height={210} unoptimized alt={evidence.file_name} /> : <div className="report-evidence-placeholder"><b>{evidence ? evidence.file_name.split(".").pop()?.toUpperCase() : "증빙 없음"}</b><span>{evidence ? "첨부 파일" : "작업에서 파일을 추가해 주세요"}</span></div>}<p><time>{work.work_date.slice(5).replace("-", ".")}</time><strong>{work.title}</strong></p></div>})}</div> : <div className="report-empty-page source-area-missing"><strong>선택한 기간에 완료된 실적이 없습니다.</strong><span>기간을 변경하거나 해당 과업의 작업 상태를 확인해 주세요.</span></div>}
               <div className="report-task-footer"><span>완료 실적은 작업 1건을 실적 1건으로 집계합니다.</span><b>BO9JEONG</b></div>
             </>}

@@ -79,6 +79,14 @@ export async function readLocalStoredFile(filePath: string) {
   return readFile(localStoragePath(filePath));
 }
 
+export async function readStoredFile(filePath: string) {
+  if (!usesSupabaseStorage()) return readLocalStoredFile(filePath);
+  const { bucket } = storageConfig();
+  const { data, error } = await getStorageClient().storage.from(bucket).download(storageObjectPath(filePath));
+  if (error) throw new Error(`파일을 읽지 못했습니다: ${error.message}`);
+  return Buffer.from(await data.arrayBuffer());
+}
+
 export async function getStoredFileUrl(filePath: string) {
   if (!usesSupabaseStorage()) return undefined;
   const { bucket } = storageConfig();
