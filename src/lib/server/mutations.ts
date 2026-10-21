@@ -9,7 +9,7 @@ import { removeStoredFiles, saveStoredFile } from "@/lib/server/storage-backend"
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const personIds = z.array(z.string().min(1)).default([]).transform((ids) => [...new Set(ids)]);
 
-export const projectInputSchema = z.object({
+const projectFieldsSchema = z.object({
   vendor_name: z.string().trim().min(1, "업체명을 입력해 주세요."),
   project_name: z.string().trim().min(1, "프로젝트명을 입력해 주세요."),
   management_category: z.string().trim().default(""),
@@ -18,7 +18,9 @@ export const projectInputSchema = z.object({
   status: projectStatusSchema,
   assignee_ids: personIds,
   actor_id: z.string().min(1),
-}).refine((value) => value.start_date <= value.end_date, { message: "종료일은 시작일보다 빠를 수 없습니다.", path: ["end_date"] });
+});
+
+export const projectInputSchema = projectFieldsSchema.refine((value) => value.start_date <= value.end_date, { message: "종료일은 시작일보다 빠를 수 없습니다.", path: ["end_date"] });
 
 export const taskInputSchema = z.object({
   project_id: z.string().min(1),
@@ -31,6 +33,11 @@ export const taskInputSchema = z.object({
   assignee_ids: personIds,
   actor_id: z.string().min(1),
 });
+
+const projectTaskInputSchema = taskInputSchema.omit({ project_id: true, actor_id: true });
+export const projectCreationInputSchema = projectFieldsSchema.extend({
+  tasks: z.array(projectTaskInputSchema).min(1, "과업을 한 개 이상 선택해 주세요."),
+}).refine((value) => value.start_date <= value.end_date, { message: "종료일은 시작일보다 빠를 수 없습니다.", path: ["end_date"] });
 
 export const workInputSchema = z.object({
   task_id: z.string().min(1),
@@ -65,6 +72,7 @@ export const workFileDeleteInputSchema = z.object({
 });
 
 export type ProjectInput = z.input<typeof projectInputSchema>;
+export type ProjectCreationInput = z.input<typeof projectCreationInputSchema>;
 export type TaskInput = z.input<typeof taskInputSchema>;
 export type WorkInput = z.input<typeof workInputSchema>;
 export type AssetInput = z.input<typeof assetInputSchema>;
@@ -115,14 +123,26 @@ export async function createComment(raw: unknown) {
   });
 }
 
-export async function createProject(raw: ProjectInput) {
+export async function createProject(raw: ProjectCreationInput) {
   return locked(async () => {
-    const input = projectInputSchema.parse(raw);
-    const [people, projects, links] = await readTables(["people", "projects", "project_assignees"]);
-    ensureActor(people, input.actor_id); ensureAssignees(people, input.assignee_ids);
+    const input = projectCreationInputSchema.parse(raw);
+    const [people, projects, projectLinks, tasks, taskLinks] = await readTables(["people", "projects", "project_assignees", "tasks", "task_assignees"]);
+    ensureActor(people, input.actor_id);
+    ensureAssignees(people, input.assignee_ids);
+    ensureAssignees(people, input.tasks.flatMap((task) => task.assignee_ids));
     const projectId = id("proj");
-    const project: TableRow<"projects"> = { project_id: projectId, vendor_name: input.vendor_name, project_name: input.project_name, management_category: input.management_category, start_date: input.start_date, end_date: input.end_date, status: input.status, created_by: input.actor_id, created_at: now() };
-    await writeTables({ projects: [...projects, project], project_assignees: [...links, ...input.assignee_ids.map((personId) => ({ project_assignee_id: id("pa"), project_id: projectId, person_id: personId }))] });
+    const timestamp = now();
+    const project: TableRow<"projects"> = { project_id: projectId, vendor_name: input.vendor_name, project_name: input.project_name, management_category: input.management_category, start_date: input.start_date, end_date: input.end_date, status: input.status, created_by: input.actor_id, created_at: timestamp };
+    const createdTasks = input.tasks.map((task) => ({
+      taskId: id("task"),
+      task,
+    }));
+    await writeTables({
+      projects: [...projects, project],
+      project_assignees: [...projectLinks, ...input.assignee_ids.map((personId) => ({ project_assignee_id: id("pa"), project_id: projectId, person_id: personId }))],
+      tasks: [...tasks, ...createdTasks.map(({ taskId, task }) => ({ task_id: taskId, project_id: projectId, target_scope: task.target_scope, task_name: task.task_name, cycle: task.cycle, target_count: task.target_count, target_unit: task.target_unit, status: task.status, created_by: input.actor_id, created_at: timestamp }))],
+      task_assignees: [...taskLinks, ...createdTasks.flatMap(({ taskId, task }) => task.assignee_ids.map((personId) => ({ task_assignee_id: id("ta"), task_id: taskId, person_id: personId })))],
+    });
     return projectId;
   });
 }

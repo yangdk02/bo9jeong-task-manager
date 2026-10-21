@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assetInputSchema, commentInputSchema, workFileDeleteInputSchema } from "./mutations";
+import { assetInputSchema, commentInputSchema, projectCreationInputSchema, workFileDeleteInputSchema } from "./mutations";
 
 const validAsset = {
   project_id: "PRJ-1",
@@ -37,5 +37,28 @@ describe("work file deletion input", () => {
   it("requires the current person", () => {
     expect(workFileDeleteInputSchema.parse({ actor_id: "USR-1" })).toEqual({ actor_id: "USR-1" });
     expect(workFileDeleteInputSchema.safeParse({ actor_id: "" }).success).toBe(false);
+  });
+});
+
+describe("project creation input", () => {
+  const project = {
+    vendor_name: "테스트 업체",
+    project_name: "통합 마케팅",
+    management_category: "온라인 홍보",
+    start_date: "2026-10-01",
+    end_date: "2026-12-31",
+    status: "active",
+    assignee_ids: ["USR-1"],
+    actor_id: "USR-1",
+  };
+
+  it("accepts tasks with their own targets and assignees", () => {
+    const parsed = projectCreationInputSchema.parse({ ...project, tasks: [{ target_scope: "블로그", task_name: "블로그 포스팅", cycle: "monthly", target_count: "8", target_unit: "건", status: "active", assignee_ids: ["USR-1", "USR-1"] }] });
+    expect(parsed.tasks[0].target_count).toBe(8);
+    expect(parsed.tasks[0].assignee_ids).toEqual(["USR-1"]);
+  });
+
+  it("requires at least one selected task", () => {
+    expect(projectCreationInputSchema.safeParse({ ...project, tasks: [] }).success).toBe(false);
   });
 });

@@ -3,7 +3,7 @@
 import { useId, useMemo, useState } from "react";
 import type { Person } from "@/lib/domain/schemas";
 
-export function MultiPersonCombobox({ people, defaultSelectedIds = [], label = "담당자" }: { people: Person[]; defaultSelectedIds?: string[]; label?: string }) {
+export function MultiPersonCombobox({ people, defaultSelectedIds = [], label = "담당자", name = "assignee_ids" }: { people: Person[]; defaultSelectedIds?: string[]; label?: string; name?: string }) {
   const listId = useId();
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -32,6 +32,6 @@ export function MultiPersonCombobox({ people, defaultSelectedIds = [], label = "
       </div>
       {isOpen && normalizedQuery && <div className="combobox-results" id={listId} role="listbox">{matches.length ? matches.map((person) => <button key={person.person_id} type="button" role="option" aria-selected="false" onClick={() => add(person)}><span className="person-avatar">{person.name.slice(0, 1)}</span><span><strong>{person.name}</strong><small>{person.department}</small></span><span className="person-add-mark">＋</span></button>) : <p>추가할 수 있는 담당자가 없습니다.</p>}</div>}
     </div>
-    {selected.length > 0 ? <div className="selected-person-list">{selected.map((person) => <span className="selected-person-chip" key={person.person_id}><span className="person-avatar">{person.name.slice(0, 1)}</span><span><strong>{person.name}</strong><small>{person.department}</small></span><button type="button" aria-label={`${person.name} 담당자 제거`} onClick={() => setSelectedIds((ids) => ids.filter((id) => id !== person.person_id))}>×</button><input type="hidden" name="assignee_ids" value={person.person_id} /></span>)}</div> : <p className="picker-empty">선택된 담당자가 없습니다.</p>}
+    {selected.length > 0 ? <div className="selected-person-list">{selected.map((person) => <span className="selected-person-chip" key={person.person_id}><span className="person-avatar">{person.name.slice(0, 1)}</span><span><strong>{person.name}</strong><small>{person.department}</small></span><button type="button" aria-label={`${person.name} 담당자 제거`} onClick={() => setSelectedIds((ids) => ids.filter((id) => id !== person.person_id))}>×</button><input type="hidden" name={name} value={person.person_id} /></span>)}</div> : <p className="picker-empty">선택된 담당자가 없습니다.</p>}
   </div>;
 }
