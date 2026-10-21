@@ -76,7 +76,7 @@ export function ReportSetupView({ projects, initialProjectId }: { projects: Repo
         <div className="report-paper-stage">
           <article className={`report-paper${showSources ? " show-sources" : ""}`}>
             {current.kind === "cover" ? <>
-              <div className="report-paper-topline"><span>ONLINE MARKETING REPORT</span><Image src="/images/bo9jeong-logo.png" width={24} height={34} alt="보구정" /></div>
+              <div className="report-paper-topline"><span>ONLINE MARKETING REPORT</span><Image src="/images/bo9jeong-logo.png" width={24} height={40} alt="보구정" /></div>
               <div className="report-cover-title"><small>{selected.project.management_category || "온라인 마케팅"}</small><h3>{selected.project.vendor_name}</h3><p>{selected.project.project_name}</p><time>{displayDate(startDate)} — {displayDate(endDate)}</time></div>
               <div className="report-cover-metrics source-area"><div><span>진행 과업</span><strong>{selected.tasks.length}</strong></div><div><span>완료 실적</span><strong>{works.length}</strong></div><div><span>증빙 파일</span><strong>{works.reduce((sum, work) => sum + work.files.length, 0)}</strong></div></div>
               <div className={`report-cover-comment ${comment.trim() ? "source-area-manual" : "source-area-missing"}`}><span>보구정&apos;s 코멘트</span><p>{comment || "보고서 조건에서 성과 요약이나 다음 달 제안 내용을 입력해 주세요."}</p></div>

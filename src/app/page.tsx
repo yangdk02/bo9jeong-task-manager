@@ -17,7 +17,7 @@ export default async function LandingPage() {
       </div>
     </section>
     <section className="landing-entry">
-      <div className="landing-brand"><Image src="/images/bo9jeong-logo.png" alt="보구정 로고" width={34} height={48} /><span>보구정 과업 관리 도구</span></div>
+      <div className="landing-brand"><Image src="/images/bo9jeong-logo.png" alt="보구정 로고" width={34} height={57} /><span>보구정 과업 관리 도구</span></div>
       <div className="landing-entry-content">
         <p className="eyebrow">WELCOME</p>
         <h1>오늘도 반갑습니다.</h1>

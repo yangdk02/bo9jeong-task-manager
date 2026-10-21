@@ -8,7 +8,7 @@ type Props = { people: Person[]; active: "dashboard" | "projects" | "assets" | "
 export function AppSidebar({ people, active }: Props) {
   return <aside className="sidebar">
     <Link className="brand" href="/">
-      <Image className="brand-logo" src="/images/bo9jeong-logo.png" alt="보구정" width={28} height={40} />
+      <Image className="brand-logo" src="/images/bo9jeong-logo.png" alt="보구정" width={28} height={47} />
       <div className="brand-copy"><strong>보구정</strong><small>과업 관리 도구</small></div>
     </Link>
     <nav aria-label="주요 메뉴">

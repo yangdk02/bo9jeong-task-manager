@@ -157,7 +157,7 @@ async function addCover(pptx: PptxGenJS, selected: ReportProject, input: z.outpu
   ], { x: 0.55, y: boxY, w: 7.17, h: 3.25, colW: [4.35, 2.82], rowH: [0.38, 2.87], border: { type: "solid", color: COLORS.border, pt: 1 }, fontFace: FONT_BODY, fontSize: 11, color: COLORS.text, valign: "middle", margin: 0.12 });
 
   const logoPath = path.join(process.cwd(), "public", "images", "bo9jeong-logo.png");
-  slide.addImage({ path: logoPath, x: 3.9, y: 10.82, w: 0.25, h: 0.36, transparency: 5, altText: "보구정 로고" });
+  slide.addImage({ path: logoPath, x: 3.9, y: 10.78, w: 0.25, h: 0.42, transparency: 5, altText: "보구정 로고" });
   addText(slide, `1 / ${pageTotal}`, { x: 7.15, y: 11.18, w: 0.68, h: 0.16, fontSize: 8.5, color: COLORS.muted, align: "right" });
 }
 
