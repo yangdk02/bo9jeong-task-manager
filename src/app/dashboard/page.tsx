@@ -1,4 +1,5 @@
 import { AppSidebar } from "@/components/app-sidebar";
+import { CountingRuleNote } from "@/components/counting-rule-note";
 import { getDashboardData } from "@/lib/server/dashboard";
 import Link from "next/link";
 
@@ -20,18 +21,19 @@ export default async function DashboardPage() {
 
     <main className="dashboard-main">
       <header className="page-header">
-        <div><p className="eyebrow">{data.monthKey.replace("-", ".")} 업무 요약</p><h1>{month}월 과업 현황</h1><p>월간 과업의 목표와 완료 작업을 한눈에 확인하세요.</p></div>
+        <div><p className="eyebrow">{data.monthKey.replace("-", ".")} 업무 요약</p><h1>{month}월 과업 현황</h1><p>반복 과업과 이월된 일회성 과업의 목표를 한눈에 확인하세요.</p></div>
       </header>
       <section className="summary-grid" aria-label="전체 요약">
-        <article><span>월간 목표</span><strong>{data.totals.target}</strong><small>전체 프로젝트 합계</small></article>
+        <article><span>이번 달 목표</span><strong>{data.totals.target}</strong><small>반복 + 진행 중인 일회성</small></article>
         <article><span>완료 작업</span><strong>{data.totals.completed}</strong><small>완료 상태 1행 = 1건</small></article>
-        <article><span>남은 목표</span><strong>{data.totals.remaining}</strong><small>목표 대비 미완료</small></article>
+        <article><span>남은 목표</span><strong>{data.totals.remaining}</strong><small>{data.totals.exceeded > 0 ? `초과 수행 ${data.totals.exceeded}건` : "목표 대비 미완료"}</small></article>
         <article className="accent"><span>전체 진행률</span><strong>{data.totals.percent}%</strong><small>이번 달 기준</small></article>
       </section>
+      <CountingRuleNote />
       <section className="content-section">
         <div className="section-heading"><div><p className="eyebrow">PROJECTS</p><h2>프로젝트별 진행률</h2></div><span>{data.projectProgress.length}개 프로젝트</span></div>
         {data.projectProgress.length === 0 ? <div className="empty-state">등록된 프로젝트가 없습니다.</div> : <div className="project-grid">{data.projectProgress.map((item) => <Link className="project-card project-card-link" href={`/projects/${item.project.project_id}`} key={item.project.project_id}>
-          <div className="project-top"><span>{item.project.vendor_name}</span><strong>{item.percent}%</strong></div><h3>{item.project.project_name}</h3><div className={`progress-track ${item.percent >= 100 ? "is-complete" : "is-incomplete"}`}><span style={{ width: `${item.percent}%` }} /></div><dl><div><dt>목표</dt><dd>{item.target}건</dd></div><div><dt>완료</dt><dd>{item.completed}건</dd></div><div><dt>남음</dt><dd>{item.remaining}건</dd></div></dl>
+          <div className="project-top"><span>{item.project.vendor_name}</span><strong>{item.percent}%</strong></div><h3>{item.project.project_name}</h3><div className={`progress-track ${item.percent >= 100 ? "is-complete" : "is-incomplete"}`}><span style={{ width: `${Math.min(item.percent, 100)}%` }} /></div><dl><div><dt>목표</dt><dd>{item.target}건</dd></div><div><dt>완료</dt><dd>{item.completed}건</dd></div><div><dt>{item.exceeded > 0 ? "초과" : "남음"}</dt><dd className={item.exceeded > 0 ? "exceeded-value" : ""}>{item.exceeded > 0 ? `+${item.exceeded}` : item.remaining}건</dd></div></dl>
         </Link>)}</div>}
       </section>
       <section className="content-section recent-section">

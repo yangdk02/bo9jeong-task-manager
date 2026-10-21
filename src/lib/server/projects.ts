@@ -11,6 +11,7 @@ export type ProjectListItem = {
   onceTaskCount: number;
   target: number;
   completed: number;
+  exceeded: number;
   percent: number;
 };
 
@@ -60,7 +61,8 @@ export async function getProjectListData(date = new Date()) {
       onceTaskCount: visibleOnceTasks.length,
       target,
       completed,
-      percent: target === 0 ? 0 : Math.min(Math.round((completed / target) * 100), 100),
+      exceeded: Math.max(completed - target, 0),
+      percent: target === 0 ? 0 : Math.round((completed / target) * 100),
     };
   });
 

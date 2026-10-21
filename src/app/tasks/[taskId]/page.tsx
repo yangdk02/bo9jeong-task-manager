@@ -18,7 +18,8 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ tas
     : data.task.works;
   const completed = works.filter((item) => item.work.status === "completed").length;
   const remaining = Math.max(data.task.task.target_count - completed, 0);
-  const percent = data.task.task.target_count === 0 ? 0 : Math.min(Math.round((completed / data.task.task.target_count) * 100), 100);
+  const exceeded = Math.max(completed - data.task.task.target_count, 0);
+  const percent = data.task.task.target_count === 0 ? 0 : Math.round((completed / data.task.task.target_count) * 100);
 
   return <div className="app-shell">
     <AppSidebar people={data.people} active="projects" />
@@ -34,9 +35,10 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ tas
       <section className="task-detail-hero card">
         <div><span>목표</span><strong>{data.task.task.target_count}{data.task.task.target_unit}</strong></div>
         <div><span>완료 작업</span><strong>{completed}{data.task.task.target_unit}</strong></div>
-        <div><span>남은 목표</span><strong>{remaining}{data.task.task.target_unit}</strong></div>
-        <div className={`task-detail-progress ${percent >= 100 ? "is-complete" : "is-incomplete"}`}><span><i style={{ width: `${percent}%` }} /></span><strong>{percent}%</strong></div>
+        <div><span>{exceeded > 0 ? "초과 수행" : "남은 목표"}</span><strong>{exceeded > 0 ? "+" : ""}{exceeded > 0 ? exceeded : remaining}{data.task.task.target_unit}</strong></div>
+        <div className={`task-detail-progress ${percent >= 100 ? "is-complete" : "is-incomplete"}`}><span><i style={{ width: `${Math.min(percent, 100)}%` }} /></span><strong>{percent}%</strong></div>
       </section>
+      <p className="counting-rule-note"><span aria-hidden="true">ⓘ</span>{data.task.task.cycle === "monthly" ? "월간 반복 과업은 이번 달에 끝낸 작업만 셉니다." : "일회성 과업은 시작한 때부터 지금까지 끝낸 작업을 합쳐 셉니다."}</p>
       <section className="content-section">
         <div className="section-heading"><div><p className="eyebrow">WORKS</p><h2>{data.task.task.cycle === "monthly" ? `${Number(data.monthKey.split("-")[1])}월 작업` : "전체 작업"}</h2></div><span>{works.length}개</span></div>
         {works.length === 0 ? <div className="empty-state">등록된 작업이 없습니다.</div> : <div className="work-card-list">{works.map((item) => <Link className="work-list-card" href={`/works/${item.work.work_id}`} key={item.work.work_id}>

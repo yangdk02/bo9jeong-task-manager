@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { CountingRuleNote } from "@/components/counting-rule-note";
 import { isTaskVisibleInMonth, taskWorksForMonth } from "@/lib/domain/task-period";
 import type { ProjectDetailData, ProjectTaskItem, ProjectWorkItem } from "@/lib/server/projects";
 
@@ -46,6 +47,14 @@ export function ProjectDetailView({ data }: { data: ProjectDetailData }) {
   const monthNumber = Number(monthKey.split("-")[1]);
   const periodTarget = periodTasks.reduce((sum, task) => sum + task.task.target_count, 0);
   const periodCompleted = periodTasks.reduce((sum, task) => sum + taskWorksForPeriod(task, monthKey).filter((item) => item.work.status === "completed").length, 0);
+  const periodRemaining = periodTasks.reduce((sum, task) => {
+    const completed = taskWorksForPeriod(task, monthKey).filter((item) => item.work.status === "completed").length;
+    return sum + Math.max(task.task.target_count - completed, 0);
+  }, 0);
+  const periodExceeded = periodTasks.reduce((sum, task) => {
+    const completed = taskWorksForPeriod(task, monthKey).filter((item) => item.work.status === "completed").length;
+    return sum + Math.max(completed - task.task.target_count, 0);
+  }, 0);
 
   return <>
     <section className="detail-controls card">
@@ -55,8 +64,9 @@ export function ProjectDetailView({ data }: { data: ProjectDetailData }) {
     </section>
 
     <section className="detail-summary" aria-label={`${monthNumber}월 프로젝트 요약`}>
-      <div><span>{monthNumber}월 목표</span><strong>{periodTarget}건</strong></div><div><span>완료 작업</span><strong>{periodCompleted}건</strong></div><div><span>남은 목표</span><strong>{Math.max(periodTarget - periodCompleted, 0)}건</strong></div>
+      <div><span>{monthNumber}월 목표</span><strong>{periodTarget}건</strong></div><div><span>완료 작업</span><strong>{periodCompleted}건</strong></div><div><span>남은 목표</span><strong>{periodRemaining}건</strong>{periodExceeded > 0 && <small className="summary-exceeded">초과 수행 {periodExceeded}건</small>}</div>
     </section>
+    <CountingRuleNote />
 
     <section className="task-section">
       <div className="section-heading"><div><p className="eyebrow">TASKS</p><h2>{monthNumber}월 과업 현황</h2></div><div className="section-actions"><span>{visibleTasks.length}개 과업</span><Link className="compact-action" href={`/projects/${data.project.project_id}/tasks/new`}>＋ 과업 생성</Link></div></div>
@@ -65,14 +75,15 @@ export function ProjectDetailView({ data }: { data: ProjectDetailData }) {
         const filteredWorks = periodWorks.filter((item) => matchesWorkFilter(item, department, personId));
         const completed = periodWorks.filter((item) => item.work.status === "completed").length;
         const remaining = Math.max(task.task.target_count - completed, 0);
-        const percent = task.task.target_count === 0 ? 0 : Math.min(Math.round((completed / task.task.target_count) * 100), 100);
+        const exceeded = Math.max(completed - task.task.target_count, 0);
+        const percent = task.task.target_count === 0 ? 0 : Math.round((completed / task.task.target_count) * 100);
         const isOpen = !!opened[task.task.task_id];
         return <article className="task-panel" key={task.task.task_id}>
           <div className="task-panel-head">
             <button className="task-toggle" type="button" aria-expanded={isOpen} onClick={() => setOpened((state) => ({ ...state, [task.task.task_id]: !isOpen }))}><span className={isOpen ? "rotated" : ""}>›</span><span className="sr-only">작업 목록 {isOpen ? "접기" : "펼치기"}</span></button>
             <div className="task-identity"><div><Link className="task-detail-link" href={`/tasks/${task.task.task_id}`}><strong>{task.task.task_name}</strong></Link><span className="mini-chip">{task.task.target_scope}</span><span className={`mini-chip cycle-chip cycle-${task.task.cycle}`}>{task.task.cycle === "monthly" ? "월간 반복" : "일회성"}</span></div><div className="mini-chip-row">{task.assignees.map((person) => <span key={person.person_id} className="assignee-chip"><b>{person.department}</b> {person.name}</span>)}</div></div>
-            <div className={`task-progress ${percent >= 100 ? "is-complete" : "is-incomplete"}`}><div><span style={{ width: `${percent}%` }} /></div><small>{completed} / {task.task.target_count}{task.task.target_unit}</small></div>
-            <span className={`remain-pill${remaining === 0 ? " done" : ""}`}>{remaining === 0 ? "목표 완료" : `잔여 ${remaining}${task.task.target_unit}`}</span>
+            <div className={`task-progress ${percent >= 100 ? "is-complete" : "is-incomplete"}`}><div><span style={{ width: `${Math.min(percent, 100)}%` }} /></div><small>{completed} / {task.task.target_count}{task.task.target_unit} · {percent}%</small></div>
+            <span className={`remain-pill${remaining === 0 ? " done" : ""}${exceeded > 0 ? " exceeded" : ""}`}>{exceeded > 0 ? `목표보다 ${exceeded}${task.task.target_unit} 더 완료` : remaining === 0 ? "목표 완료" : `잔여 ${remaining}${task.task.target_unit}`}</span>
             <span className={`project-status status-${task.task.status}`}>{taskStatusLabels[task.task.status]}</span>
           </div>
           {isOpen && <div className="task-panel-body">{filteredWorks.length === 0 ? <p className="task-empty">선택한 기간과 담당 조건에 등록된 작업이 없습니다.</p> : <div className="task-work-table"><table><thead><tr><th>날짜</th><th>담당자</th><th>작업</th><th>결과 URL</th><th>증빙</th><th>상태</th></tr></thead><tbody>{filteredWorks.map((item) => {

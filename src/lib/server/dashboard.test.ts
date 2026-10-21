@@ -30,6 +30,19 @@ describe("dashboard metrics", () => {
     });
   });
 
+  it("keeps the real rate and excess count when work exceeds the target", () => {
+    const works = Array.from({ length: 5 }, (_, index) => ({
+      task_id: "T1", work_date: `2026-10-${String(index + 1).padStart(2, "0")}`, status: "completed",
+    })) as Work[];
+    expect(calculateProjectProgress([project], [task], works, "2026-10")[0]).toMatchObject({
+      target: 4,
+      completed: 5,
+      remaining: 0,
+      exceeded: 1,
+      percent: 125,
+    });
+  });
+
   it("reads the October sample data through the repository", async () => {
     const dashboard = await getDashboardData(new Date("2026-10-20T03:00:00Z"));
     expect(dashboard.totals).toMatchObject({ target: 40, completed: 29, remaining: 11 });

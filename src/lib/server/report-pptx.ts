@@ -168,11 +168,14 @@ async function addTaskSlide(pptx: PptxGenJS, task: Task, works: CompletedWork[],
   addSectionTitle(slide, `${taskNumber}. ${task.task_name}${suffix}`, pageNumber, pageTotal);
   addText(slide, `${task.target_scope} · ${task.cycle === "monthly" ? "월간 반복" : "일회성"} · ${displayDate(startDate)} ~ ${displayDate(endDate)}`, { x: 0.42, y: 1.24, w: 7.3, h: 0.28, fontSize: 10.5, color: COLORS.brown, bold: true });
 
-  const rate = task.target_count ? Math.min(Math.round(taskWorkCount / task.target_count * 100), 100) : 0;
+  const rate = task.target_count ? Math.round(taskWorkCount / task.target_count * 100) : 0;
+  const completedLabel = taskWorkCount > task.target_count
+    ? `${taskWorkCount}${task.target_unit} (+${taskWorkCount - task.target_count} 초과)`
+    : `${taskWorkCount}${task.target_unit}`;
   const header: PptxGenJS.TableCellProps = { fill: { color: COLORS.warmGray }, bold: true, fontFace: FONT_HEAD, align: "center", valign: "middle" };
   slide.addTable([
     [{ text: "목표", options: header }, { text: "기간 내 완료", options: header }, { text: "달성률", options: header }, { text: "보고 기간", options: header }],
-    [{ text: `${task.target_count}${task.target_unit}` }, { text: `${taskWorkCount}${task.target_unit}` }, { text: `${rate}%` }, { text: `${monthLabel(startDate)} ~ ${monthLabel(endDate)}` }],
+    [{ text: `${task.target_count}${task.target_unit}` }, { text: completedLabel }, { text: `${rate}%` }, { text: `${monthLabel(startDate)} ~ ${monthLabel(endDate)}` }],
   ], { x: 0.42, y: 1.64, w: 7.4, h: 0.82, colW: [1.35, 1.65, 1.35, 3.05], rowH: [0.32, 0.5], border: { type: "solid", color: COLORS.border, pt: 0.8 }, fontFace: FONT_BODY, fontSize: 9.5, align: "center", valign: "middle", margin: 0.04 });
 
   if (!works.length) {
