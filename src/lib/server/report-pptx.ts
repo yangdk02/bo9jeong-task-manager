@@ -74,6 +74,17 @@ async function evidenceImage(file?: WorkFile) {
   }
 }
 
+async function prepareEvidenceImages(works: CompletedWork[]) {
+  const files = [...new Map(works.flatMap((work) => work.files[0] ? [[work.files[0].file_path, work.files[0]] as const] : [])).values()];
+  const images = new Map<string, string>();
+  for (let index = 0; index < files.length; index += 5) {
+    const batch = files.slice(index, index + 5);
+    const loaded = await Promise.all(batch.map(async (file) => ({ path: file.file_path, image: await evidenceImage(file) })));
+    for (const item of loaded) if (item.image) images.set(item.path, item.image);
+  }
+  return images;
+}
+
 function chunkWorks(works: CompletedWork[]) {
   if (!works.length) return [[]] as CompletedWork[][];
   const chunks: CompletedWork[][] = [];
@@ -150,7 +161,7 @@ async function addCover(pptx: PptxGenJS, selected: ReportProject, input: z.outpu
   addText(slide, `1 / ${pageTotal}`, { x: 7.15, y: 11.18, w: 0.68, h: 0.16, fontSize: 8.5, color: COLORS.muted, align: "right" });
 }
 
-async function addTaskSlide(pptx: PptxGenJS, task: Task, works: CompletedWork[], taskWorkCount: number, taskNumber: number, chunkIndex: number, chunkTotal: number, startDate: string, endDate: string, pageNumber: number, pageTotal: number) {
+async function addTaskSlide(pptx: PptxGenJS, task: Task, works: CompletedWork[], evidenceImages: Map<string, string>, taskWorkCount: number, taskNumber: number, chunkIndex: number, chunkTotal: number, startDate: string, endDate: string, pageNumber: number, pageTotal: number) {
   const slide = pptx.addSlide({ masterName: MASTER_NAME });
   addFrame(slide);
   const suffix = chunkTotal > 1 ? ` (${chunkIndex + 1}/${chunkTotal})` : "";
@@ -181,7 +192,7 @@ async function addTaskSlide(pptx: PptxGenJS, task: Task, works: CompletedWork[],
       const position = positions[index];
       const imageY = position.y;
       slide.addShape("rect", { x: position.x, y: imageY, w: imageW, h: imageH, line: { color: COLORS.lightGray, pt: 0.8 }, fill: { color: COLORS.lightGray } });
-      const image = await evidenceImage(work.files[0]);
+      const image = work.files[0] ? evidenceImages.get(work.files[0].file_path) : undefined;
       if (image) {
         slide.addImage({ data: image, x: position.x, y: imageY, w: imageW, h: imageH, sizing: { type: "cover", w: imageW, h: imageH }, altText: `${work.title} 대표 증빙` });
       } else {
@@ -203,6 +214,7 @@ export async function generateReportPptx(raw: ReportInput) {
   if (!selected) throw new Error("프로젝트를 찾을 수 없습니다.");
   const completedWorks = selected.works.filter((work) => work.status === "completed" && work.work_date >= input.start_date && work.work_date <= input.end_date);
   const pageTotal = reportSlideCount(selected, input.start_date, input.end_date);
+  const evidenceImages = await prepareEvidenceImages(completedWorks);
 
   const pptx = new PptxGenJS();
   pptx.defineLayout({ name: "BO9JEONG_A4", width: SLIDE_W, height: SLIDE_H });
@@ -220,7 +232,7 @@ export async function generateReportPptx(raw: ReportInput) {
     const taskWorks = completedWorks.filter((work) => work.task_id === task.task_id);
     const chunks = chunkWorks(taskWorks);
     for (const [chunkIndex, chunk] of chunks.entries()) {
-      await addTaskSlide(pptx, task, chunk, taskWorks.length, taskIndex + 1, chunkIndex, chunks.length, input.start_date, input.end_date, pageNumber, pageTotal);
+      await addTaskSlide(pptx, task, chunk, evidenceImages, taskWorks.length, taskIndex + 1, chunkIndex, chunks.length, input.start_date, input.end_date, pageNumber, pageTotal);
       pageNumber += 1;
     }
   }
