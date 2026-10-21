@@ -8,6 +8,12 @@ import { removeStoredFiles, saveStoredFile } from "@/lib/server/storage-backend"
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const personIds = z.array(z.string().min(1)).default([]).transform((ids) => [...new Set(ids)]);
+const departments = ["경영관리", "총무", "기획", "영상촬영", "디자인", "마케팅"] as const;
+
+export const personInputSchema = z.object({
+  name: z.string().trim().min(1, "담당자 이름을 입력해 주세요.").max(50, "담당자 이름은 50자 이하로 입력해 주세요."),
+  department: z.enum(departments, { error: "부서를 선택해 주세요." }),
+});
 
 const projectFieldsSchema = z.object({
   vendor_name: z.string().trim().min(1, "업체명을 입력해 주세요."),
@@ -73,6 +79,7 @@ export const workFileDeleteInputSchema = z.object({
 
 export type ProjectInput = z.input<typeof projectInputSchema>;
 export type ProjectCreationInput = z.input<typeof projectCreationInputSchema>;
+export type PersonInput = z.input<typeof personInputSchema>;
 export type TaskInput = z.input<typeof taskInputSchema>;
 export type WorkInput = z.input<typeof workInputSchema>;
 export type AssetInput = z.input<typeof assetInputSchema>;
@@ -106,6 +113,20 @@ function personNames(people: TableRow<"people">[], ids: string[]) {
 }
 function statusLabel(status: string) {
   return ({ planned: "예정", active: "진행", completed: "완료", draft: "작성 중" } as Record<string, string>)[status] ?? status;
+}
+
+export async function createPerson(raw: PersonInput) {
+  return locked(async () => {
+    const input = personInputSchema.parse(raw);
+    const [people] = await readTables(["people"]);
+    const normalizedName = input.name.toLocaleLowerCase("ko");
+    if (people.some((person) => person.department === input.department && person.name.toLocaleLowerCase("ko") === normalizedName)) {
+      throw new Error("같은 부서에 동일한 이름의 담당자가 이미 있습니다.");
+    }
+    const person: TableRow<"people"> = { person_id: id("person"), name: input.name, department: input.department };
+    await writeTables({ people: [...people, person] });
+    return person;
+  });
 }
 
 export async function createComment(raw: unknown) {

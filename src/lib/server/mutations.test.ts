@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assetInputSchema, commentInputSchema, projectCreationInputSchema, workFileDeleteInputSchema } from "./mutations";
+import { assetInputSchema, commentInputSchema, personInputSchema, projectCreationInputSchema, workFileDeleteInputSchema } from "./mutations";
 
 const validAsset = {
   project_id: "PRJ-1",
@@ -60,5 +60,18 @@ describe("project creation input", () => {
 
   it("requires at least one selected task", () => {
     expect(projectCreationInputSchema.safeParse({ ...project, tasks: [] }).success).toBe(false);
+  });
+});
+
+describe("person input", () => {
+  it("accepts the six current departments and trims the name", () => {
+    for (const department of ["경영관리", "총무", "기획", "영상촬영", "디자인", "마케팅"]) {
+      expect(personInputSchema.parse({ name: "  홍길동  ", department })).toEqual({ name: "홍길동", department });
+    }
+  });
+
+  it("rejects an unknown department or empty name", () => {
+    expect(personInputSchema.safeParse({ name: "홍길동", department: "개발" }).success).toBe(false);
+    expect(personInputSchema.safeParse({ name: " ", department: "마케팅" }).success).toBe(false);
   });
 });
