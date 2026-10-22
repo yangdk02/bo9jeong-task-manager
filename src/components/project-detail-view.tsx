@@ -37,7 +37,7 @@ export function ProjectDetailView({ data }: { data: ProjectDetailData }) {
   }, [data]);
   const departments = [...new Set(relevantPeople.map((person) => person.department))];
 
-  const periodTasks = data.tasks.filter((task) => isTaskVisibleInMonth(task.task, task.works.map((item) => item.work), monthKey));
+  const periodTasks = data.tasks.filter((task) => isTaskVisibleInMonth(task.task, monthKey));
   const visibleTasks = periodTasks.filter((task) => {
     if (!department && !personId) return true;
     const taskPeople = [...task.assignees, ...task.works.flatMap((item) => item.assignees)];

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Task, Work } from "@/lib/domain/schemas";
-import { isTaskVisibleInMonth, onceTaskCompletionMonth, taskWorksForMonth } from "./task-period";
+import { isTaskVisibleInMonth, taskWorksForMonth } from "./task-period";
 
 const onceTask = {
   task_id: "T-ONCE",
@@ -19,25 +19,19 @@ function work(id: string, date: string, status: Work["status"] = "completed") {
   return { work_id: id, task_id: onceTask.task_id, work_date: date, status } as Work;
 }
 
-describe("once task carry-over", () => {
-  it("carries an incomplete October task into later months", () => {
-    expect(isTaskVisibleInMonth(onceTask, [work("W1", "2026-10-10")], "2026-10")).toBe(true);
-    expect(isTaskVisibleInMonth(onceTask, [work("W1", "2026-10-10")], "2026-11")).toBe(true);
-  });
-
-  it("shows a completed task through its completion month but not the next month", () => {
-    const works = [work("W1", "2026-10-10"), work("W2", "2026-11-03")];
-    expect(onceTaskCompletionMonth(onceTask, works)).toBe("2026-11");
-    expect(isTaskVisibleInMonth(onceTask, works, "2026-11")).toBe(true);
-    expect(isTaskVisibleInMonth(onceTask, works, "2026-12")).toBe(false);
+describe("one-time task period", () => {
+  it("shows a one-time task only in its creation month", () => {
+    expect(isTaskVisibleInMonth(onceTask, "2026-10")).toBe(true);
+    expect(isTaskVisibleInMonth(onceTask, "2026-11")).toBe(false);
   });
 
   it("does not show a one-time task before its creation month", () => {
-    expect(isTaskVisibleInMonth(onceTask, [], "2026-09")).toBe(false);
+    expect(isTaskVisibleInMonth(onceTask, "2026-09")).toBe(false);
   });
 
-  it("uses cumulative works for one-time tasks", () => {
+  it("counts only works completed in the selected month", () => {
     const works = [work("W1", "2026-10-10"), work("W2", "2026-11-03"), work("W3", "2026-12-01", "draft")];
-    expect(taskWorksForMonth(onceTask, works, "2026-11").map((item) => item.work_id)).toEqual(["W1", "W2"]);
+    expect(taskWorksForMonth(onceTask, works, "2026-10").map((item) => item.work_id)).toEqual(["W1"]);
+    expect(taskWorksForMonth(onceTask, works, "2026-11").map((item) => item.work_id)).toEqual(["W2"]);
   });
 });

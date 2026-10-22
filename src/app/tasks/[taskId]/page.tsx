@@ -13,9 +13,8 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ tas
   const { taskId } = await params;
   const data = await getTaskDetailData(taskId);
   if (!data) notFound();
-  const works = data.task.task.cycle === "monthly"
-    ? data.task.works.filter((item) => item.work.work_date.startsWith(data.monthKey))
-    : data.task.works;
+  const taskMonthKey = data.task.task.cycle === "monthly" ? data.monthKey : data.task.task.created_at.slice(0, 7);
+  const works = data.task.works.filter((item) => item.work.work_date.startsWith(taskMonthKey));
   const completed = works.filter((item) => item.work.status === "completed").length;
   const remaining = Math.max(data.task.task.target_count - completed, 0);
   const exceeded = Math.max(completed - data.task.task.target_count, 0);
@@ -38,9 +37,9 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ tas
         <div><span>{exceeded > 0 ? "초과 수행" : "남은 목표"}</span><strong>{exceeded > 0 ? "+" : ""}{exceeded > 0 ? exceeded : remaining}{data.task.task.target_unit}</strong></div>
         <div className={`task-detail-progress ${percent >= 100 ? "is-complete" : "is-incomplete"}`}><span><i style={{ width: `${Math.min(percent, 100)}%` }} /></span><strong>{percent}%</strong></div>
       </section>
-      <p className="counting-rule-note"><span aria-hidden="true">ⓘ</span>{data.task.task.cycle === "monthly" ? "월간 반복 과업은 이번 달에 끝낸 작업만 셉니다." : "일회성 과업은 시작한 때부터 지금까지 끝낸 작업을 합쳐 셉니다."}</p>
+      <p className="counting-rule-note"><span aria-hidden="true">ⓘ</span>{data.task.task.cycle === "monthly" ? "월간 반복 과업은 이번 달에 끝낸 작업만 셉니다." : "일회성 과업은 등록한 달에 끝낸 작업만 세고 다음 달로 넘기지 않습니다."}</p>
       <section className="content-section">
-        <div className="section-heading"><div><p className="eyebrow">WORKS</p><h2>{data.task.task.cycle === "monthly" ? `${Number(data.monthKey.split("-")[1])}월 작업` : "전체 작업"}</h2></div><span>{works.length}개</span></div>
+        <div className="section-heading"><div><p className="eyebrow">WORKS</p><h2>{Number(taskMonthKey.split("-")[1])}월 작업</h2></div><span>{works.length}개</span></div>
         {works.length === 0 ? <div className="empty-state">등록된 작업이 없습니다.</div> : <div className="work-card-list">{works.map((item) => <Link className="work-list-card" href={`/works/${item.work.work_id}`} key={item.work.work_id}>
           <div><time>{item.work.work_date}</time><span className={`status status-${item.work.status}`}>{workStatusLabels[item.work.status]}</span></div>
           <h3>{item.work.title}</h3><p>{item.work.memo || "등록된 메모가 없습니다."}</p>

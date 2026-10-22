@@ -43,7 +43,7 @@ export async function getProjectListData(date = new Date()) {
   const items: ProjectListItem[] = projects.map((project) => {
     const projectTasks = tasks.filter((task) => task.project_id === project.project_id);
     const monthlyTasks = projectTasks.filter((task) => task.cycle === "monthly");
-    const visibleOnceTasks = projectTasks.filter((task) => task.cycle === "once" && isTaskVisibleInMonth(task, works, monthKey));
+    const visibleOnceTasks = projectTasks.filter((task) => task.cycle === "once" && isTaskVisibleInMonth(task, monthKey));
     const periodTasks = [...monthlyTasks, ...visibleOnceTasks];
     const target = periodTasks.reduce((sum, task) => sum + task.target_count, 0);
     const completed = periodTasks.reduce(

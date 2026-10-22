@@ -21,10 +21,10 @@ export default async function DashboardPage() {
 
     <main className="dashboard-main">
       <header className="page-header">
-        <div><p className="eyebrow">{data.monthKey.replace("-", ".")} 업무 요약</p><h1>{month}월 과업 현황</h1><p>반복 과업과 이월된 일회성 과업의 목표를 한눈에 확인하세요.</p></div>
+        <div><p className="eyebrow">{data.monthKey.replace("-", ".")} 업무 요약</p><h1>{month}월 과업 현황</h1><p>이번 달의 반복 과업과 일회성 과업 목표를 한눈에 확인하세요.</p></div>
       </header>
       <section className="summary-grid" aria-label="전체 요약">
-        <article><span>이번 달 목표</span><strong>{data.totals.target}</strong><small>반복 + 진행 중인 일회성</small></article>
+        <article><span>이번 달 목표</span><strong>{data.totals.target}</strong><small>반복 + 이달 등록한 일회성</small></article>
         <article><span>완료 작업</span><strong>{data.totals.completed}</strong><small>완료 상태 1행 = 1건</small></article>
         <article><span>남은 목표</span><strong>{data.totals.remaining}</strong><small>{data.totals.exceeded > 0 ? `초과 수행 ${data.totals.exceeded}건` : "목표 대비 미완료"}</small></article>
         <article className="accent"><span>전체 진행률</span><strong>{data.totals.percent}%</strong><small>이번 달 기준</small></article>

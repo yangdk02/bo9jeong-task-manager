@@ -47,7 +47,7 @@ export function calculateProjectProgress(
 ): ProjectProgress[] {
   return projects.map((project) => {
     const periodTasks = tasks.filter(
-      (task) => task.project_id === project.project_id && isTaskVisibleInMonth(task, works, monthKey),
+      (task) => task.project_id === project.project_id && isTaskVisibleInMonth(task, monthKey),
     );
     const target = periodTasks.reduce((sum, task) => sum + task.target_count, 0);
     const completed = periodTasks.reduce(
