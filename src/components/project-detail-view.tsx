@@ -20,6 +20,14 @@ function matchesWorkFilter(item: ProjectWorkItem, department: string, personId: 
     (!personId || item.assignees.some((person) => person.person_id === personId));
 }
 
+function moveMonth(monthKey: string, offset: number) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const monthIndex = year * 12 + month - 1 + offset;
+  const nextYear = Math.floor(monthIndex / 12);
+  const nextMonth = monthIndex % 12 + 1;
+  return `${nextYear}-${String(nextMonth).padStart(2, "0")}`;
+}
+
 export function ProjectDetailView({ data }: { data: ProjectDetailData }) {
   const router = useRouter();
   const [monthKey, setMonthKey] = useState(data.monthKey);
@@ -57,10 +65,14 @@ export function ProjectDetailView({ data }: { data: ProjectDetailData }) {
   }, 0);
 
   return <>
+    <section className="month-navigation" aria-label="조회 월 이동">
+      <button type="button" aria-label="이전 달 보기" onClick={() => setMonthKey((current) => moveMonth(current, -1))}>‹</button>
+      <div><span>조회 월</span><strong>{Number(monthKey.split("-")[0])}년 {monthNumber}월</strong></div>
+      <button type="button" aria-label="다음 달 보기" onClick={() => setMonthKey((current) => moveMonth(current, 1))}>›</button>
+    </section>
     <section className="detail-controls card">
-      <div><span>조회 월</span><input aria-label="조회 월" type="month" value={monthKey} onChange={(event) => setMonthKey(event.target.value)} /></div>
       <div className="department-filter"><span>부서별 보기</span><div role="group" aria-label="부서 필터"><button type="button" aria-pressed={!department} onClick={() => setDepartment("")}>전체</button>{departments.map((item) => <button key={item} type="button" aria-pressed={department === item} onClick={() => setDepartment(item)}>{item}</button>)}</div></div>
-      <label><span>담당자</span><select value={personId} onChange={(event) => setPersonId(event.target.value)}><option value="">전체 담당자</option>{relevantPeople.map((person) => <option key={person.person_id} value={person.person_id}>{person.name} · {person.department}</option>)}</select></label>
+      <label><span>담당자별 보기</span><select value={personId} onChange={(event) => setPersonId(event.target.value)}><option value="">전체 담당자</option>{relevantPeople.map((person) => <option key={person.person_id} value={person.person_id}>{person.name} · {person.department}</option>)}</select></label>
     </section>
 
     <section className="detail-summary" aria-label={`${monthNumber}월 프로젝트 요약`}>
