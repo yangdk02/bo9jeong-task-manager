@@ -8,6 +8,8 @@ coverage/
 backups/
 !src/app/api/backups/
 !src/app/api/backups/**
+!src/app/backups/
+!src/app/backups/**
 data/local/*
 !data/local/.gitkeep
 storage/*

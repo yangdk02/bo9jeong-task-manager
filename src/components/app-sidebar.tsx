@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Person } from "@/lib/domain/schemas";
 import { CurrentPersonSelector } from "@/components/current-person-selector";
 
-type Props = { people: Person[]; active: "dashboard" | "projects" | "assets" | "reports" | "guide" };
+type Props = { people: Person[]; active: "dashboard" | "projects" | "assets" | "reports" | "guide" | "backups" };
 
 export function AppSidebar({ people, active }: Props) {
   return <aside className="sidebar">
@@ -17,6 +17,7 @@ export function AppSidebar({ people, active }: Props) {
       <Link className={`nav-item${active === "assets" ? " active" : ""}`} href="/assets" aria-label="자료 검색"><span className="nav-icon">⌕</span><span className="nav-label">자료 검색</span></Link>
       <Link className={`nav-item${active === "reports" ? " active" : ""}`} href="/reports" aria-label="보고서"><span className="nav-icon">▤</span><span className="nav-label">보고서</span></Link>
       <Link className={`nav-item${active === "guide" ? " active" : ""}`} href="/guide" aria-label="이용 가이드"><span className="nav-icon">?</span><span className="nav-label">이용 가이드</span></Link>
+      <Link className={`nav-item${active === "backups" ? " active" : ""}`} href="/backups" aria-label="자료 백업 및 복구"><span className="nav-icon">↻</span><span className="nav-label">자료 백업 및 복구</span></Link>
     </nav>
     <div className="sidebar-bottom"><CurrentPersonSelector people={people} /></div>
   </aside>;
