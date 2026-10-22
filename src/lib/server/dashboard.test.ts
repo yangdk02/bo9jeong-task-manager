@@ -16,36 +16,35 @@ describe("dashboard metrics", () => {
     expect(seoulMonthKey(new Date("2026-09-30T15:30:00Z"))).toBe("2026-10");
   });
 
-  it("counts one completed work row as one result", () => {
+  it("keeps a task incomplete until its work target is reached", () => {
     const works = [
       { task_id: "T1", work_date: "2026-10-02", status: "completed" },
       { task_id: "T1", work_date: "2026-10-03", status: "draft" },
       { task_id: "T1", work_date: "2026-09-30", status: "completed" },
     ] as Work[];
     expect(calculateProjectProgress([project], [task], works, "2026-10")[0]).toMatchObject({
-      target: 4,
-      completed: 1,
-      remaining: 3,
-      percent: 25,
+      target: 1,
+      completed: 0,
+      remaining: 1,
+      percent: 0,
     });
   });
 
-  it("keeps the real rate and excess count when work exceeds the target", () => {
+  it("counts a task once when its target is reached or exceeded", () => {
     const works = Array.from({ length: 5 }, (_, index) => ({
       task_id: "T1", work_date: `2026-10-${String(index + 1).padStart(2, "0")}`, status: "completed",
     })) as Work[];
     expect(calculateProjectProgress([project], [task], works, "2026-10")[0]).toMatchObject({
-      target: 4,
-      completed: 5,
+      target: 1,
+      completed: 1,
       remaining: 0,
-      exceeded: 1,
-      percent: 125,
+      percent: 100,
     });
   });
 
   it("reads the October sample data through the repository", async () => {
     const dashboard = await getDashboardData(new Date("2026-10-20T03:00:00Z"));
-    expect(dashboard.totals).toMatchObject({ target: 36, completed: 27, remaining: 10, exceeded: 1, percent: 75 });
+    expect(dashboard.totals).toMatchObject({ target: 9, completed: 3, remaining: 6, percent: 33 });
     expect(dashboard.projectProgress).toHaveLength(3);
     expect(dashboard.people).toHaveLength(20);
     expect(dashboard.recentWorks).toHaveLength(5);

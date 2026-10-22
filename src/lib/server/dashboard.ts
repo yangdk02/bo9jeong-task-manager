@@ -7,7 +7,6 @@ export type ProjectProgress = {
   target: number;
   completed: number;
   remaining: number;
-  exceeded: number;
   percent: number;
 };
 
@@ -24,7 +23,7 @@ export type DashboardData = {
   people: Person[];
   projectProgress: ProjectProgress[];
   recentWorks: RecentWork[];
-  totals: Pick<ProjectProgress, "target" | "completed" | "remaining" | "exceeded" | "percent">;
+  totals: Pick<ProjectProgress, "target" | "completed" | "remaining" | "percent">;
 };
 
 export function seoulMonthKey(date = new Date()) {
@@ -49,15 +48,14 @@ export function calculateProjectProgress(
     const periodTasks = tasks.filter(
       (task) => task.project_id === project.project_id && isTaskVisibleInMonth(task, monthKey),
     );
-    const target = periodTasks.reduce((sum, task) => sum + task.target_count, 0);
-    const completed = periodTasks.reduce(
-      (sum, task) => sum + taskWorksForMonth(task, works, monthKey).filter((work) => work.status === "completed").length,
-      0,
-    );
+    const target = periodTasks.length;
+    const completed = periodTasks.filter((task) => {
+      const completedWorks = taskWorksForMonth(task, works, monthKey).filter((work) => work.status === "completed").length;
+      return completedWorks >= task.target_count;
+    }).length;
     const remaining = Math.max(target - completed, 0);
-    const exceeded = Math.max(completed - target, 0);
     const percent = target === 0 ? 0 : Math.round((completed / target) * 100);
-    return { project, target, completed, remaining, exceeded, percent };
+    return { project, target, completed, remaining, percent };
   });
 }
 
@@ -93,10 +91,9 @@ export async function getDashboardData(date = new Date()): Promise<DashboardData
       target: sum.target + item.target,
       completed: sum.completed + item.completed,
       remaining: sum.remaining + item.remaining,
-      exceeded: sum.exceeded + item.exceeded,
       percent: 0,
     }),
-    { target: 0, completed: 0, remaining: 0, exceeded: 0, percent: 0 },
+    { target: 0, completed: 0, remaining: 0, percent: 0 },
   );
   totals.percent = totals.target === 0 ? 0 : Math.round((totals.completed / totals.target) * 100);
 
