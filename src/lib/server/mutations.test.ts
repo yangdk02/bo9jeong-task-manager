@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assetInputSchema, commentInputSchema, personInputSchema, projectCreationInputSchema, workFileDeleteInputSchema } from "./mutations";
+import { assetInputSchema, commentInputSchema, personInputSchema, projectCreationInputSchema, workCreationInputSchema, workFileDeleteInputSchema } from "./mutations";
 
 const validAsset = {
   project_id: "PRJ-1",
@@ -37,6 +37,18 @@ describe("work file deletion input", () => {
   it("requires the current person", () => {
     expect(workFileDeleteInputSchema.parse({ actor_id: "USR-1" })).toEqual({ actor_id: "USR-1" });
     expect(workFileDeleteInputSchema.safeParse({ actor_id: "" }).success).toBe(false);
+  });
+});
+
+describe("work asset registration input", () => {
+  const work = { task_id: "TSK-1", work_date: "2026-10-22", title: "완료 작업", result_url: "", memo: "", status: "completed", assignee_ids: ["USR-1"], actor_id: "USR-1" };
+
+  it("accepts asset options when creating a work", () => {
+    expect(workCreationInputSchema.parse({ ...work, register_as_assets: true, asset_category: "카드뉴스", asset_version: "v2", asset_status: "completed" })).toMatchObject({ register_as_assets: true, asset_category: "카드뉴스", asset_version: "v2", asset_status: "completed" });
+  });
+
+  it("uses safe defaults when asset registration is not selected", () => {
+    expect(workCreationInputSchema.parse(work)).toMatchObject({ register_as_assets: false, asset_category: "기타", asset_version: "v1", asset_status: "active" });
   });
 });
 

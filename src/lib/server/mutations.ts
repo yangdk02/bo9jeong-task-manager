@@ -57,6 +57,12 @@ export const workInputSchema = z.object({
 });
 
 const assetCategories = ["로고", "로고 배치 가이드", "브랜드 가이드", "패키지 시안", "카드뉴스", "배너", "썸네일", "상세페이지", "사진 원본", "영상 원본", "보고서", "기타"] as const;
+export const workCreationInputSchema = workInputSchema.extend({
+  register_as_assets: z.boolean().default(false),
+  asset_category: z.enum(assetCategories).default("기타"),
+  asset_version: z.string().trim().min(1, "자료 버전을 입력해 주세요.").default("v1"),
+  asset_status: projectStatusSchema.default("active"),
+});
 export const assetInputSchema = z.object({
   project_id: z.string().min(1),
   asset_name: z.string().trim().min(1, "자료명을 입력해 주세요."),
@@ -82,6 +88,7 @@ export type ProjectCreationInput = z.input<typeof projectCreationInputSchema>;
 export type PersonInput = z.input<typeof personInputSchema>;
 export type TaskInput = z.input<typeof taskInputSchema>;
 export type WorkInput = z.input<typeof workInputSchema>;
+export type WorkCreationInput = z.input<typeof workCreationInputSchema>;
 export type AssetInput = z.input<typeof assetInputSchema>;
 
 let mutationQueue = Promise.resolve();
@@ -334,19 +341,34 @@ export async function deleteAsset(assetId: string) {
 
 export async function createWork(raw: unknown, files: File[] = []) {
   return locked(async () => {
-    const input = workInputSchema.parse(raw);
-    const [people, tasks, works, links, workFiles, comments] = await readTables(["people", "tasks", "works", "work_assignees", "work_files", "comments"]);
+    const input = workCreationInputSchema.parse(raw);
+    const [people, tasks, works, links, workFiles, assets, comments] = await readTables(["people", "tasks", "works", "work_assignees", "work_files", "assets", "comments"]);
     ensureActor(people, input.actor_id); ensureAssignees(people, input.assignee_ids);
-    if (!tasks.some((task) => task.task_id === input.task_id)) throw new Error("과업을 찾을 수 없습니다.");
+    const task = tasks.find((item) => item.task_id === input.task_id);
+    if (!task) throw new Error("과업을 찾을 수 없습니다.");
+    const selectedFiles = files.filter((file) => file.size > 0);
+    if (input.register_as_assets && selectedFiles.length === 0) throw new Error("자료로 등록할 파일을 한 개 이상 선택해 주세요.");
     const workId = id("work"); const timestamp = now();
     const work: TableRow<"works"> = { work_id: workId, task_id: input.task_id, work_date: input.work_date, title: input.title, result_url: input.result_url, memo: input.memo, status: input.status, created_by: input.actor_id, created_at: timestamp, updated_at: timestamp };
     let addedFiles: TableRow<"work_files">[] = [];
+    const addedAssets: TableRow<"assets">[] = [];
+    const assetActivities: TableRow<"comments">[] = [];
     try {
-      addedFiles = await saveFiles(workId, input.actor_id, files);
+      addedFiles = await saveFiles(workId, input.actor_id, selectedFiles);
+      if (input.register_as_assets) {
+        for (const file of selectedFiles) {
+          const assetId = id("asset");
+          const stored = await saveAssetFile(assetId, task.project_id, input.actor_id, file);
+          const assetName = selectedFiles.length === 1 ? input.title : `${input.title} · ${file.name}`;
+          addedAssets.push({ asset_id: assetId, project_id: task.project_id, asset_name: assetName, asset_category: input.asset_category, version: input.asset_version, ...stored, status: input.asset_status, note: `작업 '${input.title}'에서 함께 등록`, owner_person_id: input.actor_id });
+          assetActivities.push(systemActivity("asset", assetId, input.actor_id, "작업 등록과 함께 자료가 등록되었습니다.", timestamp), systemActivity("asset", assetId, input.actor_id, `파일 ${file.name}이(가) 추가되었습니다.`, timestamp));
+        }
+      }
       const activities = [systemActivity("work", workId, input.actor_id, "작업이 등록되었습니다.", timestamp)];
       if (addedFiles.length) activities.push(systemActivity("work", workId, input.actor_id, `증빙 파일 ${addedFiles.length}개가 추가되었습니다.`, timestamp));
-      await writeTables({ works: [...works, work], work_assignees: [...links, ...input.assignee_ids.map((personId) => ({ work_assignee_id: id("wa"), work_id: workId, person_id: personId }))], work_files: [...workFiles, ...addedFiles], comments: [...comments, ...activities] });
-    } catch (error) { await removeStoredFiles(addedFiles.map((file) => file.file_path)); throw error; }
+      if (addedAssets.length) activities.push(systemActivity("work", workId, input.actor_id, `증빙 파일 ${addedAssets.length}개를 자료로도 등록했습니다.`, timestamp));
+      await writeTables({ works: [...works, work], work_assignees: [...links, ...input.assignee_ids.map((personId) => ({ work_assignee_id: id("wa"), work_id: workId, person_id: personId }))], work_files: [...workFiles, ...addedFiles], assets: [...assets, ...addedAssets], comments: [...comments, ...activities, ...assetActivities] });
+    } catch (error) { await removeStoredFiles([...addedFiles.map((file) => file.file_path), ...addedAssets.map((asset) => asset.file_path)]); throw error; }
     return workId;
   });
 }
