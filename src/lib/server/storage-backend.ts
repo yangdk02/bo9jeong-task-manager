@@ -46,12 +46,12 @@ function localStoragePath(filePath: string) {
   return target;
 }
 
-export async function saveStoredFile(filePath: string, contents: Buffer, contentType?: string) {
+export async function saveStoredFile(filePath: string, contents: Buffer, contentType?: string, options?: { upsert?: boolean }) {
   if (usesSupabaseStorage()) {
     const { bucket } = storageConfig();
     const { error } = await getStorageClient().storage.from(bucket).upload(storageObjectPath(filePath), contents, {
       contentType,
-      upsert: false,
+      upsert: options?.upsert ?? false,
     });
     if (error) throw new Error(`파일을 저장하지 못했습니다: ${error.message}`);
     return;

@@ -55,6 +55,7 @@ button { letter-spacing: inherit; }
 .btn-primary, .btn-accent { padding: 10px 16px; border: 0; border-radius: var(--radius-md); color: #fff; font-weight: 700; cursor: pointer; }
 .btn-primary { background: var(--primary-strong); }.btn-accent { background: var(--accent); color: #4a3514; }
 .btn-primary:disabled,.btn-accent:disabled { cursor: not-allowed; opacity: .42; }
+.backup-card { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 14px 24px; margin-bottom: 24px; padding: 20px 22px; }.backup-card h2 { margin: 5px 0 6px; font-size: 18px; }.backup-card p { margin: 0; }.backup-card > div:first-child > p:last-child,.backup-card > small { color: var(--text-secondary); font-size: 12px; line-height: 1.55; }.backup-card > small { grid-column: 1 / -1; }.backup-actions { display: flex; align-items: center; gap: 8px; }.backup-actions button { white-space: nowrap; }.backup-file-input { display: none; }.backup-status { grid-column: 1 / -1; padding: 10px 12px; border-radius: var(--radius-md); background: color-mix(in srgb,var(--primary-light) 38%,var(--surface)); color: var(--text-primary); font-size: 12px; font-weight: 800; }
 
 /* 담당자 선택 랜딩 */
 .landing-page { display: grid; grid-template-columns: minmax(0, 1.04fr) minmax(440px, .96fr); width: 100%; min-height: 100vh; background: var(--surface); }
@@ -202,4 +203,10 @@ th,td { font-size: 14px; }th { font-size: 12px; }td small { font-size: 12px; }.t
   .report-cover-title h3 { font-size: 30px; }
   .report-source-panel { display: grid; grid-template-columns: 1fr; }
   .report-source-panel h3,.report-source-panel dl,.report-source-panel > p,.report-preview-notice,.report-preview-legend { grid-column: 1; grid-row: auto; }
+}
+
+@media (max-width: 760px) {
+  .backup-card { grid-template-columns: 1fr; }
+  .backup-actions { align-items: stretch; flex-direction: column; }
+  .backup-card > small,.backup-status { grid-column: 1; }
 }

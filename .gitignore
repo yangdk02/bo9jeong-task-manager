@@ -6,6 +6,8 @@ coverage/
 .env*
 !.env.example
 backups/
+!src/app/api/backups/
+!src/app/api/backups/**
 data/local/*
 !data/local/.gitkeep
 storage/*
