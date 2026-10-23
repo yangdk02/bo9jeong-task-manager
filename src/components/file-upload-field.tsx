@@ -53,7 +53,7 @@ export function FileUploadField({ label, multiple = false, required = false, cur
       <strong>파일 선택 또는 Ctrl+V 붙여넣기</strong><small>이미지 캡처도 클립보드에서 바로 추가할 수 있습니다.</small>
     </button>
     <input ref={inputRef} id={id} className="file-upload-native" type="file" multiple={multiple} accept={UPLOAD_ACCEPT} onChange={(event) => applyFiles(Array.from(event.target.files ?? []))} />
-    <p className="file-upload-policy"><b>가능:</b> {UPLOAD_FORMAT_LABEL}<br /><b>동영상 업로드 불가</b> · Vercel 전송 한도 4.5MB 안에서 입력값까지 안전하게 보내기 위해 총 {MAX_UPLOAD_LABEL}로 제한합니다.</p>
+    <p className="file-upload-policy"><b>가능:</b> {UPLOAD_FORMAT_LABEL}<br /><b>동영상 업로드 불가</b> · {MAX_UPLOAD_LABEL}로 제한합니다.</p>
     {currentFileName && files.length === 0 && <small className="asset-file-current">현재 파일: {currentFileName} · 새 파일을 선택하지 않으면 유지됩니다.</small>}
     {files.length > 0 && <ul className="selected-file-list">{files.map((file) => <li key={fileKey(file)}><span><strong>{file.name}</strong><small>{formatSize(file.size)}</small></span><button type="button" onClick={() => removeFile(fileKey(file))}>삭제</button></li>)}</ul>}
     {error && <p className="file-upload-error" role="alert">{error}</p>}
