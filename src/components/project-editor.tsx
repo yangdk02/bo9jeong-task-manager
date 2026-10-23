@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Person, Project } from "@/lib/domain/schemas";
 import { MultiPersonCombobox } from "@/components/multi-person-combobox";
+import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 
 const scopes = ["SNS", "블로그", "디자인", "촬영", "영상", "네이버 플레이스", "광고", "기타"] as const;
 const units = ["건", "장", "곳", "회", "기타"] as const;
@@ -23,11 +24,12 @@ const taskCatalog: TaskDraft[] = [
   { key: "ad", group: "네이버 플레이스", name: "플레이스 광고 집행", scope: "광고", cycle: "monthly", count: 1, unit: "회", selected: false },
 ];
 
-function TaskChecklist({ people, drafts, setDrafts }: { people: Person[]; drafts: TaskDraft[]; setDrafts: React.Dispatch<React.SetStateAction<TaskDraft[]>> }) {
+function TaskChecklist({ people, drafts, setDrafts, onChange }: { people: Person[]; drafts: TaskDraft[]; setDrafts: React.Dispatch<React.SetStateAction<TaskDraft[]>>; onChange: () => void }) {
   const selectedCount = drafts.filter((draft) => draft.selected).length;
   const groups = [...new Set(drafts.map((draft) => draft.group))];
-  function update(key: string, patch: Partial<TaskDraft>) { setDrafts((items) => items.map((item) => item.key === key ? { ...item, ...patch } : item)); }
+  function update(key: string, patch: Partial<TaskDraft>) { onChange(); setDrafts((items) => items.map((item) => item.key === key ? { ...item, ...patch } : item)); }
   function addCustomTask() {
+    onChange();
     const key = `custom-${Date.now()}`;
     setDrafts((items) => [...items, { key, group: "직접 추가", name: "", scope: "기타", cycle: "once", count: 1, unit: "건", selected: true, custom: true }]);
   }
@@ -39,7 +41,7 @@ function TaskChecklist({ people, drafts, setDrafts }: { people: Person[]; drafts
         <h3>{group}</h3>
         <div className="task-checklist-list">
           {drafts.filter((draft) => draft.group === group).map((draft) => <article className={`task-checklist-item ${draft.selected ? "selected" : ""}`} key={draft.key}>
-            <label className="task-check-toggle"><input type="checkbox" checked={draft.selected} onChange={(event) => update(draft.key, { selected: event.target.checked })} /><span>{draft.name || "새 과업"}</span>{draft.custom && <button type="button" onClick={(event) => { event.preventDefault(); setDrafts((items) => items.filter((item) => item.key !== draft.key)); }}>삭제</button>}</label>
+            <label className="task-check-toggle"><input type="checkbox" checked={draft.selected} onChange={(event) => update(draft.key, { selected: event.target.checked })} /><span>{draft.name || "새 과업"}</span>{draft.custom && <button type="button" onClick={(event) => { event.preventDefault(); onChange(); setDrafts((items) => items.filter((item) => item.key !== draft.key)); }}>삭제</button>}</label>
             {draft.selected && <div className="task-check-fields">
               <label className="task-name-field"><span>과업명</span><input name={`task_name_${draft.key}`} required defaultValue={draft.name} /></label>
               <label><span>대상 범위</span><select name={`task_scope_${draft.key}`} defaultValue={draft.scope}>{scopes.map((scope) => <option key={scope}>{scope}</option>)}</select></label>
@@ -61,6 +63,7 @@ export function ProjectEditor({ people, project, assigneeIds = [] }: { people: P
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [taskDrafts, setTaskDrafts] = useState(() => taskCatalog.map((task) => ({ ...task })));
+  const { setChanged, markSaved, confirmLeave } = useUnsavedWarning();
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError("");
     const form = new FormData(event.currentTarget);
@@ -74,14 +77,15 @@ export function ProjectEditor({ people, project, assigneeIds = [] }: { people: P
     const response = await fetch(project ? `/api/projects/${project.project_id}` : "/api/projects", { method: project ? "PATCH" : "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) { setError(body.error ?? "저장하지 못했습니다."); setBusy(false); return; }
-    router.push(`/projects/${body.id ?? project?.project_id}`); router.refresh();
+    markSaved(); router.push(`/projects/${body.id ?? project?.project_id}`); router.refresh();
   }
-  return <form className="entity-form card project-creation-form" onSubmit={submit}>
+  function cancel() { if (confirmLeave()) { markSaved(); router.back(); } }
+  return <form className="entity-form card project-creation-form" onSubmit={submit} onChange={setChanged}>
     <section>{!project && <div className="project-form-section-head"><div><span>1</span><div><h2>기본 정보</h2><p>프로젝트 정보와 복수 담당자를 입력합니다.</p></div></div></div>}
       <div className="form-grid"><label><span>업체명 *</span><input name="vendor_name" required defaultValue={project?.vendor_name} /></label><label><span>프로젝트명 *</span><input name="project_name" required defaultValue={project?.project_name} /></label><label><span>관리 분류</span><input name="management_category" defaultValue={project?.management_category} placeholder="예: 통합 마케팅" /></label><label><span>상태</span><select name="status" defaultValue={project?.status ?? "planned"}><option value="planned">예정</option><option value="active">진행</option><option value="completed">완료</option></select></label><label><span>시작일 *</span><input name="start_date" type="date" required defaultValue={project?.start_date} /></label><label><span>종료일 *</span><input name="end_date" type="date" required defaultValue={project?.end_date} /></label></div>
       <MultiPersonCombobox people={people} defaultSelectedIds={assigneeIds} label="프로젝트 담당자" />
     </section>
-    {!project && <TaskChecklist people={people} drafts={taskDrafts} setDrafts={setTaskDrafts} />}
-    {error && <p className="form-error">{error}</p>}<div className="form-actions"><button type="button" onClick={() => router.back()}>취소</button><button className="btn-primary" disabled={busy}>{busy ? "저장 중…" : project ? "수정 저장" : "프로젝트와 과업 생성"}</button></div>
+    {!project && <TaskChecklist people={people} drafts={taskDrafts} setDrafts={setTaskDrafts} onChange={setChanged} />}
+    {error && <p className="form-error">{error}</p>}<div className="form-actions"><button type="button" onClick={cancel}>취소</button><button className="btn-primary" disabled={busy}>{busy ? "저장 중…" : project ? "수정 저장" : "프로젝트와 과업 생성"}</button></div>
   </form>;
 }

@@ -5,8 +5,8 @@ import { useMemo, useState } from "react";
 import { CountingRuleNote } from "@/components/counting-rule-note";
 import type { ProjectListItem } from "@/lib/server/projects";
 
-type StatusFilter = "all" | "planned" | "active" | "completed";
-const statusLabels = { planned: "예정", active: "진행", completed: "완료" } as const;
+type StatusFilter = "all" | "planned" | "active" | "completed" | "expired";
+const statusLabels = { planned: "예정", active: "진행", completed: "완료", expired: "계약 만료" } as const;
 
 function displayDate(value: string) { return value.replaceAll("-", "."); }
 
@@ -16,17 +16,20 @@ export function ProjectListView({ items, monthKey }: { items: ProjectListItem[];
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLocaleLowerCase("ko");
   const filtered = useMemo(() => items.filter((item) => {
-    const matchesStatus = status === "all" || item.project.status === status;
+    const matchesStatus = status === "all" || (status === "expired" ? item.contractExpired : !item.contractExpired && item.project.status === status);
     const searchable = `${item.project.vendor_name} ${item.project.project_name} ${item.project.management_category}`.toLocaleLowerCase("ko");
     return matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery));
   }), [items, normalizedQuery, status]);
-  const counts = { all: items.length, planned: 0, active: 0, completed: 0 };
-  for (const item of items) counts[item.project.status] += 1;
+  const counts = { all: items.length, planned: 0, active: 0, completed: 0, expired: 0 };
+  for (const item of items) {
+    if (item.contractExpired) counts.expired += 1;
+    else counts[item.project.status] += 1;
+  }
 
   return <>
     <div className="project-toolbar">
       <div className="status-filters" role="group" aria-label="프로젝트 상태 필터">
-        {(["all", "active", "planned", "completed"] as const).map((value) => <button key={value} type="button" aria-pressed={status === value} onClick={() => setStatus(value)}>
+        {(["all", "active", "planned", "completed", "expired"] as const).map((value) => <button key={value} type="button" aria-pressed={status === value} onClick={() => setStatus(value)}>
           {value === "all" ? "전체" : statusLabels[value]} <span>{counts[value]}</span>
         </button>)}
       </div>
@@ -49,7 +52,7 @@ export function ProjectListView({ items, monthKey }: { items: ProjectListItem[];
           <td><div className="mini-chip-row">{item.departments.map((department) => <span className="mini-chip" key={department}>{department}</span>)}</div></td>
           <td><span className="cycle-count cycle-monthly">월간 {item.monthlyTaskCount}</span><span className="cycle-count cycle-once">일회성 {item.onceTaskCount}</span></td>
           <td><div className={`list-progress ${item.percent >= 100 ? "is-complete" : "is-incomplete"}`}><div><span style={{ width: `${Math.min(item.percent, 100)}%` }} /></div><strong>{item.completed} / {item.target}</strong>{item.exceeded > 0 && <small className="exceeded-badge">+{item.exceeded} 초과</small>}</div></td>
-          <td><span className={`project-status status-${item.project.status}`}>{statusLabels[item.project.status]}</span></td>
+          <td><span className={`project-status status-${item.contractExpired ? "expired" : item.project.status}`}>{item.contractExpired ? statusLabels.expired : statusLabels[item.project.status]}</span></td>
         </tr>})}</tbody>
       </table>
     </div>}

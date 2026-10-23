@@ -130,7 +130,7 @@ export function BackupControls() {
   }
 
   return <section className="backup-card card" aria-labelledby="backup-title">
-    <div><p className="eyebrow">BACKUP FILE</p><h2 id="backup-title">현재 데이터 보관하기</h2><p>백업을 내려받거나 기존 백업 ZIP을 선택해 데이터를 복구하세요.</p></div>
+    <div><p className="eyebrow">BACKUP FILE</p><h2 id="backup-title">현재 데이터 보관하기</h2><p>데이터와 등록된 작업 증빙·자료 파일을 ZIP으로 내려받거나 복구하세요.</p></div>
     <div className="backup-actions">
       <button className="compact-action" type="button" disabled={busy !== null} onClick={downloadBackup}>{busy === "download" ? "백업 중…" : "ZIP 백업 다운로드"}</button>
       <button className="btn-accent" type="button" disabled={busy !== null} onClick={() => inputRef.current?.click()}>{busy === "restore" ? "복구 중…" : "ZIP으로 복구"}</button>

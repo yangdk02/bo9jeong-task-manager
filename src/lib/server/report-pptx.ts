@@ -39,9 +39,8 @@ function displayDate(value: string) {
   return `${year}.${month}.${day}`;
 }
 
-function monthLabel(value: string) {
-  const [, month] = value.split("-");
-  return `${Number(month)}월`;
+export function reportPeriodLabel(startDate: string, endDate: string) {
+  return `${displayDate(startDate)} ~ ${displayDate(endDate)}`;
 }
 
 function generatedDate() {
@@ -175,7 +174,7 @@ async function addTaskSlide(pptx: PptxGenJS, task: Task, works: CompletedWork[],
   const header: PptxGenJS.TableCellProps = { fill: { color: COLORS.warmGray }, bold: true, fontFace: FONT_HEAD, align: "center", valign: "middle" };
   slide.addTable([
     [{ text: "목표", options: header }, { text: "기간 내 완료", options: header }, { text: "달성률", options: header }, { text: "보고 기간", options: header }],
-    [{ text: `${task.target_count}${task.target_unit}` }, { text: completedLabel }, { text: `${rate}%` }, { text: `${monthLabel(startDate)} ~ ${monthLabel(endDate)}` }],
+    [{ text: `${task.target_count}${task.target_unit}` }, { text: completedLabel }, { text: `${rate}%` }, { text: reportPeriodLabel(startDate, endDate) }],
   ], { x: 0.42, y: 1.64, w: 7.4, h: 0.82, colW: [1.35, 1.65, 1.35, 3.05], rowH: [0.32, 0.5], border: { type: "solid", color: COLORS.border, pt: 0.8 }, fontFace: FONT_BODY, fontSize: 9.5, align: "center", valign: "middle", margin: 0.04 });
 
   if (!works.length) {
@@ -207,7 +206,6 @@ async function addTaskSlide(pptx: PptxGenJS, task: Task, works: CompletedWork[],
       if (work.result_url) slide.addText([{ text: "결과 URL", options: { hyperlink: { url: work.result_url }, color: COLORS.blue, underline: { color: COLORS.blue }, fontFace: FONT_BODY, fontSize: 8.5 } }], { x: position.x + 0.12, y: imageY + imageH + 0.46, w: 1.25, h: 0.18, margin: 0 });
     }
   }
-  addText(slide, "완료 상태의 작업 1건을 실적 1건으로 집계합니다.", { x: 0.42, y: 11.17, w: 5.8, h: 0.16, fontSize: 7.8, color: COLORS.muted });
 }
 
 export async function generateReportPptx(raw: ReportInput) {

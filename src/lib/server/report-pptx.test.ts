@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ReportProject } from "./reports";
-import { reportInputSchema, reportSlideCount } from "./report-pptx";
+import { reportInputSchema, reportPeriodLabel, reportSlideCount } from "./report-pptx";
 
 describe("report input", () => {
   it("accepts a valid project period and trims the comment", () => {
@@ -14,6 +14,9 @@ describe("report input", () => {
 });
 
 describe("report pages", () => {
+  it("prints the report period with full dates", () => {
+    expect(reportPeriodLabel("2026-10-01", "2026-10-31")).toBe("2026.10.01 ~ 2026.10.31");
+  });
   it("splits each task into pages of four completed works", () => {
     const project = {
       project: { project_id: "PRJ-1" },

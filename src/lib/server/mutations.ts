@@ -5,6 +5,7 @@ import { projectStatusSchema, workStatusSchema, type TableRow } from "@/lib/doma
 import { readTables, writeTables } from "@/lib/server/csv-repository";
 import { withDataWriteLock } from "@/lib/server/data-backend";
 import { removeStoredFiles, saveStoredFile } from "@/lib/server/storage-backend";
+import { validateUploadFiles } from "@/lib/upload-policy";
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const personIds = z.array(z.string().min(1)).default([]).transform((ids) => [...new Set(ids)]);
@@ -246,13 +247,13 @@ export async function deleteTask(taskId: string) {
   });
 }
 
-const allowedExtensions = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".csv", ".zip", ".mp4", ".mov", ".avi", ".webm", ".ai", ".psd", ".indd"]);
 async function saveFiles(workId: string, actorId: string, files: File[]) {
   const created: TableRow<"work_files">[] = [];
   try {
-    for (const file of files.filter((item) => item.size > 0)) {
-      const extension = path.extname(file.name).toLowerCase();
-      if (!allowedExtensions.has(extension)) throw new Error(`${file.name}: 지원하지 않는 파일 형식입니다.`);
+    const selected = files.filter((item) => item.size > 0);
+    const validation = validateUploadFiles(selected);
+    if (validation) throw new Error(validation);
+    for (const file of selected) {
       const fileId = id("wf");
       const safeName = path.basename(file.name).replace(/[^0-9A-Za-z가-힣._-]/g, "_");
       const storedName = `${fileId}_${safeName}`;
@@ -269,8 +270,8 @@ async function saveFiles(workId: string, actorId: string, files: File[]) {
 
 async function saveAssetFile(assetId: string, projectId: string, actorId: string, file: File) {
   if (!file.size) throw new Error("자료 파일을 선택해 주세요.");
-  const extension = path.extname(file.name).toLowerCase();
-  if (!allowedExtensions.has(extension)) throw new Error(`${file.name}: 지원하지 않는 파일 형식입니다.`);
+  const validation = validateUploadFiles([file]);
+  if (validation) throw new Error(validation);
   const safeName = path.basename(file.name).replace(/[^0-9A-Za-z가-힣._-]/g, "_");
   const filePath = path.posix.join("storage", "assets", projectId, `${assetId}_${randomUUID().replaceAll("-", "").slice(0, 8)}_${safeName}`);
   await saveStoredFile(filePath, Buffer.from(await file.arrayBuffer()), file.type || undefined);

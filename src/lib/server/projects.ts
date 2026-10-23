@@ -13,6 +13,7 @@ export type ProjectListItem = {
   completed: number;
   exceeded: number;
   percent: number;
+  contractExpired: boolean;
 };
 
 export type ProjectWorkItem = {
@@ -35,8 +36,14 @@ export type ProjectDetailData = {
   tasks: ProjectTaskItem[];
 };
 
+export function isContractExpired(project: Pick<Project, "end_date">, today: string) {
+  return project.end_date < today;
+}
+
 export async function getProjectListData(date = new Date()) {
   const monthKey = seoulMonthKey(date);
+  const dateParts = new Intl.DateTimeFormat("en", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
+  const today = `${dateParts.find((part) => part.type === "year")?.value}-${dateParts.find((part) => part.type === "month")?.value}-${dateParts.find((part) => part.type === "day")?.value}`;
   const [people, projects, projectAssignees, tasks, works] = await readTables(["people", "projects", "project_assignees", "tasks", "works"]);
   const personById = new Map(people.map((person) => [person.person_id, person]));
 
@@ -63,6 +70,7 @@ export async function getProjectListData(date = new Date()) {
       completed,
       exceeded: Math.max(completed - target, 0),
       percent: target === 0 ? 0 : Math.round((completed / target) * 100),
+      contractExpired: isContractExpired(project, today),
     };
   });
 
