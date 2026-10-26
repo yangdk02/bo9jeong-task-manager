@@ -4,6 +4,7 @@ import { parse } from "csv-parse/sync";
 import { tableSchemas, type TableName, type TableRow } from "@/lib/domain/schemas";
 import { readTables, writeTables } from "@/lib/server/csv-repository";
 import { removeStoredFiles } from "@/lib/server/storage-backend";
+import { PLACE_MONTHLY_TASK_NAME } from "@/lib/domain/task-catalog";
 
 export const BACKUP_TABLES = [
   "people",
@@ -14,12 +15,13 @@ export const BACKUP_TABLES = [
   "works",
   "work_assignees",
   "work_files",
+  "place_monthly_metrics",
   "assets",
   "comments",
 ] as const satisfies readonly TableName[];
 
 export const BACKUP_FORMAT = "bo9jeong-task-manager-backup";
-export const BACKUP_VERSION = 1;
+export const BACKUP_VERSION = 2;
 
 type BackupRows = { [K in TableName]: TableRow<K>[] };
 export type BackupCsvMap = { [K in TableName]: string };
@@ -47,7 +49,7 @@ export async function getBackupDescriptor() {
   }));
 
   const workFiles = rows[7] as BackupRows["work_files"];
-  const assets = rows[8] as BackupRows["assets"];
+  const assets = rows[9] as BackupRows["assets"];
   const files = [...new Set([...workFiles.map((item) => item.file_path), ...assets.map((item) => item.file_path)])].sort();
   files.forEach(validateStoragePath);
 
@@ -122,7 +124,7 @@ function validateRelations(rows: BackupRows) {
       table === "project_assignees" ? "project_assignee_id" : table === "tasks" ? "task_id" :
       table === "task_assignees" ? "task_assignee_id" : table === "works" ? "work_id" :
       table === "work_assignees" ? "work_assignee_id" : table === "work_files" ? "work_file_id" :
-      table === "assets" ? "asset_id" : "comment_id";
+      table === "place_monthly_metrics" ? "place_metric_id" : table === "assets" ? "asset_id" : "comment_id";
     ensureUnique(rows[table] as unknown as Array<Record<string, unknown>>, idField, table);
   }
 
@@ -145,6 +147,12 @@ function validateRelations(rows: BackupRows) {
   ensureLinks(rows.work_assignees, "person_id", people, "work_assignees");
   ensureLinks(rows.work_files, "work_id", works, "work_files");
   ensureLinks(rows.work_files, "uploaded_by", people, "work_files");
+  ensureLinks(rows.place_monthly_metrics, "task_id", tasks, "place_monthly_metrics");
+  ensureLinks(rows.place_monthly_metrics, "entered_by", people, "place_monthly_metrics");
+  const taskById = new Map(rows.tasks.map((row) => [row.task_id, row]));
+  for (const metric of rows.place_monthly_metrics) {
+    if (taskById.get(metric.task_id)?.task_name !== PLACE_MONTHLY_TASK_NAME) throw new Error(`플레이스 방문자 수는 '${PLACE_MONTHLY_TASK_NAME}' 과업에만 연결할 수 있습니다.`);
+  }
   ensureLinks(rows.assets, "project_id", projects, "assets");
   ensureLinks(rows.assets, "uploaded_by", people, "assets");
   ensureLinks(rows.assets.filter((row) => row.owner_person_id), "owner_person_id", people, "assets");
@@ -167,6 +175,13 @@ function validateRelations(rows: BackupRows) {
       if (values.has(key)) throw new Error(`${table}에 중복 담당자 연결이 있습니다.`);
       values.add(key);
     }
+  }
+
+  const metricMonths = new Set<string>();
+  for (const row of rows.place_monthly_metrics) {
+    const key = `${row.task_id}\u0000${row.year_month}`;
+    if (metricMonths.has(key)) throw new Error("place_monthly_metrics에 같은 과업·월 데이터가 중복되어 있습니다.");
+    metricMonths.add(key);
   }
 
   [...rows.work_files.map((row) => row.file_path), ...rows.assets.map((row) => row.file_path)].forEach(validateStoragePath);

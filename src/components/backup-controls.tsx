@@ -4,9 +4,9 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import JSZip from "jszip";
 
-const backupTables = ["people", "projects", "project_assignees", "tasks", "task_assignees", "works", "work_assignees", "work_files", "assets", "comments"] as const;
+const backupTables = ["people", "projects", "project_assignees", "tasks", "task_assignees", "works", "work_assignees", "work_files", "place_monthly_metrics", "assets", "comments"] as const;
 const backupFormat = "bo9jeong-task-manager-backup";
-const backupVersion = 1;
+const backupVersion = 2;
 type TableName = (typeof backupTables)[number];
 type BackupCsvMap = Record<TableName, string>;
 type Descriptor = {

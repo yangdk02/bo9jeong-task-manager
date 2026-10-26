@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assetInputSchema, commentInputSchema, personInputSchema, projectCreationInputSchema, workCreationInputSchema, workFileDeleteInputSchema } from "./mutations";
+import { assetInputSchema, commentInputSchema, personInputSchema, placeMonthlyMetricInputSchema, projectCreationInputSchema, workCreationInputSchema, workFileDeleteInputSchema } from "./mutations";
 
 const validAsset = {
   project_id: "PRJ-1",
@@ -11,6 +11,15 @@ const validAsset = {
   owner_person_id: "USR-1",
   actor_id: "USR-2",
 };
+
+describe("place monthly metric input", () => {
+  it("allows an actual zero but rejects negative and decimal visitor counts", () => {
+    const base = { task_id: "TSK-1", year_month: "2026-10", actor_id: "USR-1" };
+    expect(placeMonthlyMetricInputSchema.parse({ ...base, visitor_count: "0" }).visitor_count).toBe(0);
+    expect(placeMonthlyMetricInputSchema.safeParse({ ...base, visitor_count: -1 }).success).toBe(false);
+    expect(placeMonthlyMetricInputSchema.safeParse({ ...base, visitor_count: 1.5 }).success).toBe(false);
+  });
+});
 
 describe("asset input", () => {
   it("accepts the existing asset schema fields", () => {

@@ -30,7 +30,7 @@ if (!connectionString || !supabaseUrl || !supabaseKey) {
 
 const database = postgres(connectionString, { max: 1, prepare: false });
 const storage = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false, autoRefreshToken: false } });
-const tableOrder = ["people", "projects", "project_assignees", "tasks", "task_assignees", "works", "work_assignees", "work_files", "assets", "comments"];
+const tableOrder = ["people", "projects", "project_assignees", "tasks", "task_assignees", "works", "work_assignees", "work_files", "place_monthly_metrics", "assets", "comments"];
 
 try {
   const schema = await readFile(path.join(projectRoot, "supabase", "schema.sql"), "utf8");
@@ -53,6 +53,7 @@ try {
         const rows = parse(source, { bom: true, columns: true, skip_empty_lines: true });
         if (!rows.length) continue;
         if (table === "tasks") for (const row of rows) row.target_count = Number(row.target_count);
+        if (table === "place_monthly_metrics") for (const row of rows) row.visitor_count = Number(row.visitor_count);
         const columns = Object.keys(rows[0]);
         await transaction`insert into ${transaction(table)} ${transaction(rows, ...columns)}`;
         console.log(`seeded ${table}: ${rows.length}`);

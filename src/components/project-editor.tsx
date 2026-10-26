@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { Person, Project } from "@/lib/domain/schemas";
 import { MultiPersonCombobox } from "@/components/multi-person-combobox";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
+import { TASK_CATALOG } from "@/lib/domain/task-catalog";
 
 const scopes = ["SNS", "블로그", "디자인", "촬영", "영상", "네이버 플레이스", "광고", "기타"] as const;
 const units = ["건", "장", "곳", "회", "기타"] as const;
@@ -12,17 +13,7 @@ type Scope = (typeof scopes)[number];
 type Unit = (typeof units)[number];
 type TaskDraft = { key: string; group: string; name: string; scope: Scope; cycle: "monthly" | "once"; count: number; unit: Unit; selected: boolean; custom?: boolean };
 
-const taskCatalog: TaskDraft[] = [
-  { key: "blog", group: "블로그", name: "블로그 포스팅", scope: "블로그", cycle: "monthly", count: 8, unit: "건", selected: false },
-  { key: "card", group: "인스타그램", name: "카드디자인", scope: "디자인", cycle: "monthly", count: 4, unit: "건", selected: false },
-  { key: "post", group: "인스타그램", name: "일반 포스팅", scope: "SNS", cycle: "monthly", count: 8, unit: "건", selected: false },
-  { key: "reels", group: "인스타그램", name: "릴스 · 숏폼 영상", scope: "영상", cycle: "monthly", count: 4, unit: "건", selected: false },
-  { key: "shoot", group: "촬영", name: "출사 (사진·영상 촬영)", scope: "촬영", cycle: "monthly", count: 2, unit: "회", selected: false },
-  { key: "thumbnail", group: "콘텐츠 제작", name: "맛집 소식 썸네일 제작", scope: "디자인", cycle: "once", count: 1, unit: "건", selected: false },
-  { key: "detail", group: "콘텐츠 제작", name: "상세페이지 디자인", scope: "디자인", cycle: "once", count: 1, unit: "건", selected: false },
-  { key: "place", group: "네이버 플레이스", name: "플레이스 관리 (월 통계 캡처)", scope: "네이버 플레이스", cycle: "monthly", count: 1, unit: "회", selected: false },
-  { key: "ad", group: "네이버 플레이스", name: "플레이스 광고 집행", scope: "광고", cycle: "monthly", count: 1, unit: "회", selected: false },
-];
+const taskCatalog: TaskDraft[] = TASK_CATALOG.map((task) => ({ ...task, selected: false }));
 
 function TaskChecklist({ people, drafts, setDrafts, onChange }: { people: Person[]; drafts: TaskDraft[]; setDrafts: React.Dispatch<React.SetStateAction<TaskDraft[]>>; onChange: () => void }) {
   const selectedCount = drafts.filter((draft) => draft.selected).length;
@@ -31,7 +22,7 @@ function TaskChecklist({ people, drafts, setDrafts, onChange }: { people: Person
   function addCustomTask() {
     onChange();
     const key = `custom-${Date.now()}`;
-    setDrafts((items) => [...items, { key, group: "직접 추가", name: "", scope: "기타", cycle: "once", count: 1, unit: "건", selected: true, custom: true }]);
+    setDrafts((items) => [...items, { key, group: "기타", name: "", scope: "기타", cycle: "once", count: 1, unit: "건", selected: true, custom: true }]);
   }
 
   return <section className="project-task-section">
@@ -43,7 +34,7 @@ function TaskChecklist({ people, drafts, setDrafts, onChange }: { people: Person
           {drafts.filter((draft) => draft.group === group).map((draft) => <article className={`task-checklist-item ${draft.selected ? "selected" : ""}`} key={draft.key}>
             <label className="task-check-toggle"><input type="checkbox" checked={draft.selected} onChange={(event) => update(draft.key, { selected: event.target.checked })} /><span>{draft.name || "새 과업"}</span>{draft.custom && <button type="button" onClick={(event) => { event.preventDefault(); onChange(); setDrafts((items) => items.filter((item) => item.key !== draft.key)); }}>삭제</button>}</label>
             {draft.selected && <div className="task-check-fields">
-              <label className="task-name-field"><span>과업명</span><input name={`task_name_${draft.key}`} required defaultValue={draft.name} /></label>
+              {draft.custom ? <label className="task-name-field"><span>기타 과업명</span><input name={`task_name_${draft.key}`} required placeholder="계약서의 과업명을 입력해 주세요" /></label> : <input type="hidden" name={`task_name_${draft.key}`} value={draft.name} />}
               <label><span>대상 범위</span><select name={`task_scope_${draft.key}`} defaultValue={draft.scope}>{scopes.map((scope) => <option key={scope}>{scope}</option>)}</select></label>
               <label><span>주기</span><select name={`task_cycle_${draft.key}`} defaultValue={draft.cycle}><option value="monthly">월간 반복</option><option value="once">일회성</option></select></label>
               <label><span>목표 수량</span><input name={`task_count_${draft.key}`} type="number" min="0" required defaultValue={draft.count} /></label>
@@ -54,7 +45,7 @@ function TaskChecklist({ people, drafts, setDrafts, onChange }: { people: Person
         </div>
       </section>)}
     </div>
-    <button className="add-custom-task" type="button" onClick={addCustomTask}>＋ 목록에 없는 과업 직접 추가</button>
+    <button className="add-custom-task" type="button" onClick={addCustomTask}>＋ 기타 과업 추가</button>
   </section>;
 }
 

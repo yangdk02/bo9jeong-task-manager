@@ -72,6 +72,17 @@ create table if not exists public.work_files (
   uploaded_at text not null
 );
 
+create table if not exists public.place_monthly_metrics (
+  place_metric_id text primary key,
+  task_id text not null,
+  year_month text not null check (year_month ~ '^[0-9]{4}-[0-9]{2}$'),
+  visitor_count integer not null check (visitor_count >= 0),
+  entered_by text not null,
+  entered_at text not null,
+  updated_at text not null,
+  unique (task_id, year_month)
+);
+
 create table if not exists public.assets (
   asset_id text primary key,
   project_id text not null,
@@ -129,6 +140,7 @@ where person.person_id = migration.person_id
 create index if not exists projects_status_idx on public.projects (status);
 create index if not exists tasks_project_id_idx on public.tasks (project_id);
 create index if not exists works_task_id_idx on public.works (task_id);
+create index if not exists place_monthly_metrics_task_id_idx on public.place_monthly_metrics (task_id, year_month);
 create index if not exists assets_project_id_idx on public.assets (project_id);
 create index if not exists comments_target_idx on public.comments (target_type, target_id);
 
@@ -148,6 +160,7 @@ as $$
     'works', coalesce((select jsonb_agg(to_jsonb(source)) from public.works source), '[]'::jsonb),
     'work_assignees', coalesce((select jsonb_agg(to_jsonb(source)) from public.work_assignees source), '[]'::jsonb),
     'work_files', coalesce((select jsonb_agg(to_jsonb(source)) from public.work_files source), '[]'::jsonb),
+    'place_monthly_metrics', coalesce((select jsonb_agg(to_jsonb(source)) from public.place_monthly_metrics source), '[]'::jsonb),
     'assets', coalesce((select jsonb_agg(to_jsonb(source)) from public.assets source), '[]'::jsonb),
     'comments', coalesce((select jsonb_agg(to_jsonb(source)) from public.comments source), '[]'::jsonb)
   );
@@ -164,12 +177,13 @@ alter table public.task_assignees enable row level security;
 alter table public.works enable row level security;
 alter table public.work_assignees enable row level security;
 alter table public.work_files enable row level security;
+alter table public.place_monthly_metrics enable row level security;
 alter table public.assets enable row level security;
 alter table public.comments enable row level security;
 
 revoke all on table public.people, public.projects, public.project_assignees, public.tasks,
   public.task_assignees, public.works, public.work_assignees, public.work_files,
-  public.assets, public.comments from anon, authenticated;
+  public.place_monthly_metrics, public.assets, public.comments from anon, authenticated;
 
 insert into storage.buckets (id, name, public)
 values ('bo9jeong-files', 'bo9jeong-files', false)

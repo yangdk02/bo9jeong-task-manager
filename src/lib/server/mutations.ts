@@ -6,6 +6,7 @@ import { readTables, writeTables } from "@/lib/server/csv-repository";
 import { withDataWriteLock } from "@/lib/server/data-backend";
 import { removeStoredFiles, saveStoredFile } from "@/lib/server/storage-backend";
 import { validateUploadFiles } from "@/lib/upload-policy";
+import { PLACE_MONTHLY_TASK_NAME } from "@/lib/domain/task-catalog";
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const personIds = z.array(z.string().min(1)).default([]).transform((ids) => [...new Set(ids)]);
@@ -55,6 +56,7 @@ export const workInputSchema = z.object({
   status: workStatusSchema,
   assignee_ids: personIds,
   actor_id: z.string().min(1),
+  visitor_count: z.union([z.literal(""), z.coerce.number().int("방문자 수는 정수로 입력해 주세요.").nonnegative("방문자 수는 0 이상이어야 합니다.")]).optional().default(""),
 });
 
 const assetCategories = ["로고", "로고 배치 가이드", "브랜드 가이드", "패키지 시안", "카드뉴스", "배너", "썸네일", "상세페이지", "사진 원본", "영상 원본", "보고서", "기타"] as const;
@@ -81,6 +83,12 @@ export const commentInputSchema = z.object({
   body: z.string().trim().min(1, "댓글 내용을 입력해 주세요.").max(2000, "댓글은 2,000자 이하로 입력해 주세요."),
 });
 export const workFileDeleteInputSchema = z.object({
+  actor_id: z.string().min(1, "현재 담당자를 다시 선택해 주세요."),
+});
+export const placeMonthlyMetricInputSchema = z.object({
+  task_id: z.string().min(1),
+  year_month: z.string().regex(/^\d{4}-\d{2}$/, "조회 월 형식이 올바르지 않습니다."),
+  visitor_count: z.coerce.number().int("방문자 수는 정수로 입력해 주세요.").nonnegative("방문자 수는 0 이상이어야 합니다."),
   actor_id: z.string().min(1, "현재 담당자를 다시 선택해 주세요."),
 });
 
@@ -195,7 +203,7 @@ async function removePhysicalFiles(paths: string[]) {
 
 export async function deleteProject(projectId: string) {
   return locked(async () => {
-    const [projects, projectLinks, tasks, taskLinks, works, workLinks, workFiles, assets, comments] = await readTables(["projects", "project_assignees", "tasks", "task_assignees", "works", "work_assignees", "work_files", "assets", "comments"]);
+    const [projects, projectLinks, tasks, taskLinks, works, workLinks, workFiles, placeMetrics, assets, comments] = await readTables(["projects", "project_assignees", "tasks", "task_assignees", "works", "work_assignees", "work_files", "place_monthly_metrics", "assets", "comments"]);
     if (!projects.some((project) => project.project_id === projectId)) throw new Error("프로젝트를 찾을 수 없습니다.");
     const taskIds = new Set(tasks.filter((task) => task.project_id === projectId).map((task) => task.task_id));
     const workIds = new Set(works.filter((work) => taskIds.has(work.task_id)).map((work) => work.work_id));
@@ -205,6 +213,7 @@ export async function deleteProject(projectId: string) {
       projects: projects.filter((project) => project.project_id !== projectId), project_assignees: projectLinks.filter((link) => link.project_id !== projectId),
       tasks: tasks.filter((task) => !taskIds.has(task.task_id)), task_assignees: taskLinks.filter((link) => !taskIds.has(link.task_id)),
       works: works.filter((work) => !workIds.has(work.work_id)), work_assignees: workLinks.filter((link) => !workIds.has(link.work_id)), work_files: workFiles.filter((file) => !workIds.has(file.work_id)),
+      place_monthly_metrics: placeMetrics.filter((metric) => !taskIds.has(metric.task_id)),
       assets: assets.filter((asset) => !assetIds.has(asset.asset_id)), comments: comments.filter((comment) => !(comment.target_type === "work" && workIds.has(comment.target_id)) && !(comment.target_type === "asset" && assetIds.has(comment.target_id))),
     });
     await removePhysicalFiles(deletedPaths);
@@ -238,13 +247,24 @@ export async function updateTask(taskId: string, raw: TaskInput) {
 
 export async function deleteTask(taskId: string) {
   return locked(async () => {
-    const [tasks, taskLinks, works, workLinks, workFiles, comments] = await readTables(["tasks", "task_assignees", "works", "work_assignees", "work_files", "comments"]);
+    const [tasks, taskLinks, works, workLinks, workFiles, placeMetrics, comments] = await readTables(["tasks", "task_assignees", "works", "work_assignees", "work_files", "place_monthly_metrics", "comments"]);
     if (!tasks.some((task) => task.task_id === taskId)) throw new Error("과업을 찾을 수 없습니다.");
     const workIds = new Set(works.filter((work) => work.task_id === taskId).map((work) => work.work_id));
     const deletedPaths = workFiles.filter((file) => workIds.has(file.work_id)).map((file) => file.file_path);
-    await writeTables({ tasks: tasks.filter((task) => task.task_id !== taskId), task_assignees: taskLinks.filter((link) => link.task_id !== taskId), works: works.filter((work) => !workIds.has(work.work_id)), work_assignees: workLinks.filter((link) => !workIds.has(link.work_id)), work_files: workFiles.filter((file) => !workIds.has(file.work_id)), comments: comments.filter((comment) => !(comment.target_type === "work" && workIds.has(comment.target_id))) });
+    await writeTables({ tasks: tasks.filter((task) => task.task_id !== taskId), task_assignees: taskLinks.filter((link) => link.task_id !== taskId), works: works.filter((work) => !workIds.has(work.work_id)), work_assignees: workLinks.filter((link) => !workIds.has(link.work_id)), work_files: workFiles.filter((file) => !workIds.has(file.work_id)), place_monthly_metrics: placeMetrics.filter((metric) => metric.task_id !== taskId), comments: comments.filter((comment) => !(comment.target_type === "work" && workIds.has(comment.target_id))) });
     await removePhysicalFiles(deletedPaths);
   });
+}
+
+function savePlaceMetricForWork(metrics: TableRow<"place_monthly_metrics">[], task: TableRow<"tasks">, workDate: string, visitorCount: number | "" | undefined, actorId: string, timestamp: string) {
+  if (task.task_name !== PLACE_MONTHLY_TASK_NAME) return metrics;
+  if (visitorCount === "" || visitorCount === undefined) throw new Error("해당 월 방문자 수를 입력해 주세요.");
+  const yearMonth = workDate.slice(0, 7);
+  const existing = metrics.find((metric) => metric.task_id === task.task_id && metric.year_month === yearMonth);
+  const next: TableRow<"place_monthly_metrics"> = existing
+    ? { ...existing, visitor_count: visitorCount, entered_by: actorId, updated_at: timestamp }
+    : { place_metric_id: id("place_metric"), task_id: task.task_id, year_month: yearMonth, visitor_count: visitorCount, entered_by: actorId, entered_at: timestamp, updated_at: timestamp };
+  return existing ? metrics.map((metric) => metric.place_metric_id === existing.place_metric_id ? next : metric) : [...metrics, next];
 }
 
 async function saveFiles(workId: string, actorId: string, files: File[]) {
@@ -343,7 +363,7 @@ export async function deleteAsset(assetId: string) {
 export async function createWork(raw: unknown, files: File[] = []) {
   return locked(async () => {
     const input = workCreationInputSchema.parse(raw);
-    const [people, tasks, works, links, workFiles, assets, comments] = await readTables(["people", "tasks", "works", "work_assignees", "work_files", "assets", "comments"]);
+    const [people, tasks, works, links, workFiles, placeMetrics, assets, comments] = await readTables(["people", "tasks", "works", "work_assignees", "work_files", "place_monthly_metrics", "assets", "comments"]);
     ensureActor(people, input.actor_id); ensureAssignees(people, input.assignee_ids);
     const task = tasks.find((item) => item.task_id === input.task_id);
     if (!task) throw new Error("과업을 찾을 수 없습니다.");
@@ -351,6 +371,7 @@ export async function createWork(raw: unknown, files: File[] = []) {
     if (input.register_as_assets && selectedFiles.length === 0) throw new Error("자료로 등록할 파일을 한 개 이상 선택해 주세요.");
     const workId = id("work"); const timestamp = now();
     const work: TableRow<"works"> = { work_id: workId, task_id: input.task_id, work_date: input.work_date, title: input.title, result_url: input.result_url, memo: input.memo, status: input.status, created_by: input.actor_id, created_at: timestamp, updated_at: timestamp };
+    const nextPlaceMetrics = savePlaceMetricForWork(placeMetrics, task, input.work_date, input.visitor_count, input.actor_id, timestamp);
     let addedFiles: TableRow<"work_files">[] = [];
     const addedAssets: TableRow<"assets">[] = [];
     const assetActivities: TableRow<"comments">[] = [];
@@ -368,7 +389,7 @@ export async function createWork(raw: unknown, files: File[] = []) {
       const activities = [systemActivity("work", workId, input.actor_id, "작업이 등록되었습니다.", timestamp)];
       if (addedFiles.length) activities.push(systemActivity("work", workId, input.actor_id, `증빙 파일 ${addedFiles.length}개가 추가되었습니다.`, timestamp));
       if (addedAssets.length) activities.push(systemActivity("work", workId, input.actor_id, `증빙 파일 ${addedAssets.length}개를 자료로도 등록했습니다.`, timestamp));
-      await writeTables({ works: [...works, work], work_assignees: [...links, ...input.assignee_ids.map((personId) => ({ work_assignee_id: id("wa"), work_id: workId, person_id: personId }))], work_files: [...workFiles, ...addedFiles], assets: [...assets, ...addedAssets], comments: [...comments, ...activities, ...assetActivities] });
+      await writeTables({ works: [...works, work], work_assignees: [...links, ...input.assignee_ids.map((personId) => ({ work_assignee_id: id("wa"), work_id: workId, person_id: personId }))], work_files: [...workFiles, ...addedFiles], place_monthly_metrics: nextPlaceMetrics, assets: [...assets, ...addedAssets], comments: [...comments, ...activities, ...assetActivities] });
     } catch (error) { await removeStoredFiles([...addedFiles.map((file) => file.file_path), ...addedAssets.map((asset) => asset.file_path)]); throw error; }
     return workId;
   });
@@ -377,12 +398,14 @@ export async function createWork(raw: unknown, files: File[] = []) {
 export async function updateWork(workId: string, raw: unknown, files: File[] = []) {
   return locked(async () => {
     const input = workInputSchema.parse(raw);
-    const [people, tasks, works, links, workFiles, comments] = await readTables(["people", "tasks", "works", "work_assignees", "work_files", "comments"]);
+    const [people, tasks, works, links, workFiles, placeMetrics, comments] = await readTables(["people", "tasks", "works", "work_assignees", "work_files", "place_monthly_metrics", "comments"]);
     ensureActor(people, input.actor_id); ensureAssignees(people, input.assignee_ids);
     const existing = works.find((work) => work.work_id === workId);
     if (!existing) throw new Error("작업을 찾을 수 없습니다.");
-    if (!tasks.some((task) => task.task_id === input.task_id)) throw new Error("과업을 찾을 수 없습니다.");
+    const task = tasks.find((item) => item.task_id === input.task_id);
+    if (!task) throw new Error("과업을 찾을 수 없습니다.");
     const timestamp = now(); let addedFiles: TableRow<"work_files">[] = [];
+    const nextPlaceMetrics = savePlaceMetricForWork(placeMetrics, task, input.work_date, input.visitor_count, input.actor_id, timestamp);
     const existingAssigneeIds = links.filter((link) => link.work_id === workId).map((link) => link.person_id);
     try {
       addedFiles = await saveFiles(workId, input.actor_id, files);
@@ -392,7 +415,7 @@ export async function updateWork(workId: string, raw: unknown, files: File[] = [
       if (existing.status !== input.status) activities.push(systemActivity("work", workId, input.actor_id, `작업 상태가 ${statusLabel(existing.status)}에서 ${statusLabel(input.status)}(으)로 변경되었습니다.`, timestamp));
       if (!sameIds(existingAssigneeIds, input.assignee_ids)) activities.push(systemActivity("work", workId, input.actor_id, `작업 담당자가 ${personNames(people, input.assignee_ids)}(으)로 변경되었습니다.`, timestamp));
       if (addedFiles.length) activities.push(systemActivity("work", workId, input.actor_id, `증빙 파일 ${addedFiles.length}개가 추가되었습니다.`, timestamp));
-      await writeTables({ works: works.map((work) => work.work_id === workId ? { ...work, task_id: input.task_id, work_date: input.work_date, title: input.title, result_url: input.result_url, memo: input.memo, status: input.status, updated_at: timestamp } : work), work_assignees: [...links.filter((link) => link.work_id !== workId), ...input.assignee_ids.map((personId) => ({ work_assignee_id: id("wa"), work_id: workId, person_id: personId }))], work_files: [...workFiles, ...addedFiles], comments: [...comments, ...activities] });
+      await writeTables({ works: works.map((work) => work.work_id === workId ? { ...work, task_id: input.task_id, work_date: input.work_date, title: input.title, result_url: input.result_url, memo: input.memo, status: input.status, updated_at: timestamp } : work), work_assignees: [...links.filter((link) => link.work_id !== workId), ...input.assignee_ids.map((personId) => ({ work_assignee_id: id("wa"), work_id: workId, person_id: personId }))], work_files: [...workFiles, ...addedFiles], place_monthly_metrics: nextPlaceMetrics, comments: [...comments, ...activities] });
     } catch (error) { await Promise.all(addedFiles.map((file) => removePhysicalFiles([file.file_path]))); throw error; }
   });
 }

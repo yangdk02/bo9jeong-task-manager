@@ -1,0 +1,3 @@
+place_metric_id,task_id,year_month,visitor_count,entered_by,entered_at,updated_at
+PMM-001,TSK-008,2026-09,0,USR-002,2026-10-01T09:00:00+09:00,2026-10-01T09:00:00+09:00
+PMM-002,TSK-008,2026-10,1842,USR-002,2026-10-25T09:00:00+09:00,2026-10-25T09:00:00+09:00

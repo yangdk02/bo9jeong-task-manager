@@ -79,6 +79,16 @@ export const workFileSchema = z.object({
   uploaded_at: isoDateTime,
 });
 
+export const placeMonthlyMetricSchema = z.object({
+  place_metric_id: id,
+  task_id: id,
+  year_month: z.string().regex(/^\d{4}-\d{2}$/),
+  visitor_count: z.coerce.number().int().nonnegative(),
+  entered_by: id,
+  entered_at: isoDateTime,
+  updated_at: isoDateTime,
+});
+
 export const assetSchema = z.object({
   asset_id: id,
   project_id: id,
@@ -109,6 +119,7 @@ export type Project = z.infer<typeof projectSchema>;
 export type Task = z.infer<typeof taskSchema>;
 export type Work = z.infer<typeof workSchema>;
 export type WorkFile = z.infer<typeof workFileSchema>;
+export type PlaceMonthlyMetric = z.infer<typeof placeMonthlyMetricSchema>;
 
 export const tableSchemas = {
   people: peopleSchema,
@@ -119,6 +130,7 @@ export const tableSchemas = {
   works: workSchema,
   work_assignees: workAssigneeSchema,
   work_files: workFileSchema,
+  place_monthly_metrics: placeMonthlyMetricSchema,
   assets: assetSchema,
   comments: commentSchema,
 } as const;

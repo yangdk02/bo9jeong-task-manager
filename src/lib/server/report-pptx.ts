@@ -3,9 +3,11 @@ import JSZip from "jszip";
 import PptxGenJS from "pptxgenjs";
 import sharp from "sharp";
 import { z } from "zod";
-import type { Task, WorkFile } from "@/lib/domain/schemas";
+import type { PlaceMonthlyMetric, Task, WorkFile } from "@/lib/domain/schemas";
 import { getReportSetupData, type ReportProject } from "@/lib/server/reports";
 import { readStoredFile } from "@/lib/server/storage-backend";
+import { metricMonthLabel, metricValueLabel, placeMetricComparison } from "@/lib/domain/place-metrics";
+import { PLACE_MONTHLY_TASK_NAME } from "@/lib/domain/task-catalog";
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 export const reportInputSchema = z.object({
@@ -160,7 +162,7 @@ async function addCover(pptx: PptxGenJS, selected: ReportProject, input: z.outpu
   addText(slide, `1 / ${pageTotal}`, { x: 7.15, y: 11.18, w: 0.68, h: 0.16, fontSize: 8.5, color: COLORS.muted, align: "right" });
 }
 
-async function addTaskSlide(pptx: PptxGenJS, task: Task, works: CompletedWork[], evidenceImages: Map<string, string>, taskWorkCount: number, taskNumber: number, chunkIndex: number, chunkTotal: number, startDate: string, endDate: string, pageNumber: number, pageTotal: number) {
+async function addTaskSlide(pptx: PptxGenJS, task: Task, works: CompletedWork[], evidenceImages: Map<string, string>, placeMonthlyMetrics: PlaceMonthlyMetric[], taskWorkCount: number, taskNumber: number, chunkIndex: number, chunkTotal: number, startDate: string, endDate: string, pageNumber: number, pageTotal: number) {
   const slide = pptx.addSlide({ masterName: MASTER_NAME });
   addFrame(slide);
   const suffix = chunkTotal > 1 ? ` (${chunkIndex + 1}/${chunkTotal})` : "";
@@ -176,6 +178,41 @@ async function addTaskSlide(pptx: PptxGenJS, task: Task, works: CompletedWork[],
     [{ text: "목표", options: header }, { text: "기간 내 완료", options: header }, { text: "달성률", options: header }, { text: "보고 기간", options: header }],
     [{ text: `${task.target_count}${task.target_unit}` }, { text: completedLabel }, { text: `${rate}%` }, { text: reportPeriodLabel(startDate, endDate) }],
   ], { x: 0.42, y: 1.64, w: 7.4, h: 0.82, colW: [1.35, 1.65, 1.35, 3.05], rowH: [0.32, 0.5], border: { type: "solid", color: COLORS.border, pt: 0.8 }, fontFace: FONT_BODY, fontSize: 9.5, align: "center", valign: "middle", margin: 0.04 });
+
+  if (task.task_name === PLACE_MONTHLY_TASK_NAME) {
+    const displayWorks = works.slice(0, 2);
+    if (!displayWorks.length) {
+      slide.addShape("rect", { x: 0.62, y: 2.82, w: 7.03, h: 4.75, line: { color: COLORS.lightGray, pt: 1 }, fill: { color: "F3F3F3" } });
+      addText(slide, "선택한 기간에 완료된 통계 캡처 작업이 없습니다.", { x: 1.0, y: 4.82, w: 6.25, h: 0.4, fontFace: FONT_HEAD, fontSize: 15, bold: true, align: "center", color: COLORS.muted });
+    } else {
+      const imageW = displayWorks.length === 1 ? 6.45 : 3.42;
+      const positions = displayWorks.length === 1 ? [0.91] : [0.62, 4.2];
+      for (const [index, work] of displayWorks.entries()) {
+        const x = positions[index];
+        slide.addShape("rect", { x, y: 2.82, w: imageW, h: 4.35, line: { color: COLORS.lightGray, pt: 0.8 }, fill: { color: COLORS.lightGray } });
+        const image = work.files[0] ? evidenceImages.get(work.files[0].file_path) : undefined;
+        if (image) slide.addImage({ data: image, x, y: 2.82, w: imageW, h: 4.35, sizing: { type: "contain", w: imageW, h: 4.35 }, altText: `${work.title} 대표 증빙` });
+        else addText(slide, work.files[0] ? `${work.files[0].file_name}\n미리보기 미지원` : "증빙 파일 없음", { x: x + 0.2, y: 4.65, w: imageW - 0.4, h: 0.58, fontSize: 10.5, color: COLORS.muted, align: "center", valign: "middle", fit: "shrink" });
+        slide.addShape("rect", { x, y: 7.17, w: imageW, h: 0.62, line: { color: COLORS.lightGray, pt: 0.8 }, fill: { color: COLORS.white } });
+        addText(slide, work.title, { x: x + 0.12, y: 7.34, w: imageW - 0.95, h: 0.2, fontFace: FONT_HEAD, fontSize: 9.5, bold: true, fit: "shrink" });
+        addText(slide, work.work_date.slice(5).replace("-", "."), { x: x + imageW - 0.76, y: 7.34, w: 0.62, h: 0.18, fontSize: 8, color: COLORS.muted, align: "right" });
+      }
+    }
+    const comparison = placeMetricComparison(placeMonthlyMetrics, task.task_id, endDate.slice(0, 7));
+    const difference = comparison.difference === undefined ? "—" : `${comparison.difference >= 0 ? "+" : ""}${comparison.difference.toLocaleString("ko-KR")}`;
+    slide.addTable([
+      ["방문 지표", metricMonthLabel(comparison.previousMonth), metricMonthLabel(comparison.month), "증감", "증감률"].map((text) => ({ text, options: header })),
+      [
+        { text: "방문자 수", options: { bold: true, fontFace: FONT_HEAD } },
+        { text: metricValueLabel(comparison.previous, "전월 자료 없음") },
+        { text: metricValueLabel(comparison.current, "미입력") },
+        { text: difference },
+        { text: comparison.rate ?? "—", options: { bold: true } },
+      ],
+    ], { x: 0.42, y: 8.45, w: 7.4, h: 1.08, colW: [1.28, 1.72, 1.72, 1.28, 1.4], rowH: [0.42, 0.66], border: { type: "solid", color: COLORS.border, pt: 0.8 }, fontFace: FONT_BODY, fontSize: 9, color: COLORS.text, align: "center", valign: "middle", margin: 0.04 });
+    addText(slide, "작업 등록 시 입력한 방문자 수를 기준으로 전월과 비교합니다.", { x: 0.44, y: 9.72, w: 7.3, h: 0.24, fontSize: 8.5, color: COLORS.muted });
+    return;
+  }
 
   if (!works.length) {
     slide.addShape("rect", { x: 0.62, y: 3.12, w: 7.03, h: 5.7, line: { color: COLORS.lightGray, pt: 1 }, fill: { color: "F3F3F3" } });
@@ -233,7 +270,7 @@ export async function generateReportPptx(raw: ReportInput) {
     const taskWorks = completedWorks.filter((work) => work.task_id === task.task_id);
     const chunks = chunkWorks(taskWorks);
     for (const [chunkIndex, chunk] of chunks.entries()) {
-      await addTaskSlide(pptx, task, chunk, evidenceImages, taskWorks.length, taskIndex + 1, chunkIndex, chunks.length, input.start_date, input.end_date, pageNumber, pageTotal);
+      await addTaskSlide(pptx, task, chunk, evidenceImages, selected.placeMonthlyMetrics, taskWorks.length, taskIndex + 1, chunkIndex, chunks.length, input.start_date, input.end_date, pageNumber, pageTotal);
       pageNumber += 1;
     }
   }

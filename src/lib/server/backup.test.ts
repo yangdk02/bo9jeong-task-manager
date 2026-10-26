@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { BACKUP_TABLES, getBackupDescriptor, parseAndValidateBackupTables, requiredBackupFiles } from "@/lib/server/backup";
 
 describe("backup", () => {
-  it("현재 데이터를 10개 CSV와 등록 파일 목록으로 구성한다", async () => {
+  it("현재 데이터를 11개 CSV와 등록 파일 목록으로 구성한다", async () => {
     const descriptor = await getBackupDescriptor();
     expect(descriptor.manifest.tables).toEqual([...BACKUP_TABLES]);
-    expect(Object.keys(descriptor.tables)).toHaveLength(10);
+    expect(Object.keys(descriptor.tables)).toHaveLength(11);
     const rows = await parseAndValidateBackupTables(descriptor.tables);
     expect(requiredBackupFiles(rows)).toEqual(descriptor.files);
   });
