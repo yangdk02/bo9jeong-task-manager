@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Task, Work } from "@/lib/domain/schemas";
-import { isTaskVisibleInMonth, taskWorksForMonth } from "./task-period";
+import { isTaskVisibleInMonth, isTaskVisibleInPeriod, taskWorksForMonth } from "./task-period";
 
 const onceTask = {
   task_id: "T-ONCE",
@@ -27,6 +27,11 @@ describe("one-time task period", () => {
 
   it("does not show a one-time task before its creation month", () => {
     expect(isTaskVisibleInMonth(onceTask, "2026-09")).toBe(false);
+  });
+
+  it("shows a one-time task only when its creation month is inside the report period", () => {
+    expect(isTaskVisibleInPeriod(onceTask, "2026-08", "2026-10")).toBe(true);
+    expect(isTaskVisibleInPeriod(onceTask, "2026-11", "2026-12")).toBe(false);
   });
 
   it("counts only works completed in the selected month", () => {

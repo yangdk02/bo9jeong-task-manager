@@ -8,6 +8,7 @@ import { getReportSetupData, type ReportProject } from "@/lib/server/reports";
 import { readStoredFile } from "@/lib/server/storage-backend";
 import { metricMonthLabel, metricValueLabel, placeMetricComparison } from "@/lib/domain/place-metrics";
 import { PLACE_MONTHLY_TASK_NAME } from "@/lib/domain/task-catalog";
+import { isTaskVisibleInPeriod } from "@/lib/domain/task-period";
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 export const reportInputSchema = z.object({
@@ -112,12 +113,18 @@ async function repairPresentationPackage(file: Uint8Array) {
 }
 
 export function reportSlideCount(project: ReportProject, startDate: string, endDate: string) {
-  const completed = project.works.filter((work) => work.status === "completed" && work.work_date >= startDate && work.work_date <= endDate);
-  return 1 + project.tasks.reduce((sum, task) => sum + chunkWorks(completed.filter((work) => work.task_id === task.task_id)).length, 0);
+  const tasks = reportTasksForPeriod(project, startDate, endDate);
+  const taskIds = new Set(tasks.map((task) => task.task_id));
+  const completed = project.works.filter((work) => taskIds.has(work.task_id) && work.status === "completed" && work.work_date >= startDate && work.work_date <= endDate);
+  return 1 + tasks.reduce((sum, task) => sum + chunkWorks(completed.filter((work) => work.task_id === task.task_id)).length, 0);
 }
 
-function coverRows(project: ReportProject, completedWorks: CompletedWork[]) {
-  return project.tasks.map((task) => {
+export function reportTasksForPeriod(project: ReportProject, startDate: string, endDate: string) {
+  return project.tasks.filter((task) => isTaskVisibleInPeriod(task, startDate.slice(0, 7), endDate.slice(0, 7)));
+}
+
+function coverRows(tasks: Task[], completedWorks: CompletedWork[]) {
+  return tasks.map((task) => {
     const count = completedWorks.filter((work) => work.task_id === task.task_id).length;
     return [
       { text: task.target_scope, options: { bold: true, fontFace: FONT_HEAD, valign: "middle" as const } },
@@ -126,7 +133,7 @@ function coverRows(project: ReportProject, completedWorks: CompletedWork[]) {
   });
 }
 
-async function addCover(pptx: PptxGenJS, selected: ReportProject, input: z.output<typeof reportInputSchema>, completedWorks: CompletedWork[], pageTotal: number) {
+async function addCover(pptx: PptxGenJS, selected: ReportProject, tasks: Task[], input: z.output<typeof reportInputSchema>, completedWorks: CompletedWork[], pageTotal: number) {
   const slide = pptx.addSlide({ masterName: MASTER_NAME });
   addFrame(slide);
   addText(slide, "BO9JEONGJEJU", { x: 0.55, y: 0.92, w: 3.5, h: 0.32, fontFace: FONT_HEAD, fontSize: 19, bold: true, color: COLORS.brown, charSpacing: 0.8 });
@@ -140,7 +147,7 @@ async function addCover(pptx: PptxGenJS, selected: ReportProject, input: z.outpu
     [{ text: selected.project.vendor_name }, { text: `${displayDate(input.start_date)}\n${displayDate(input.end_date)}` }, { text: selected.project.management_category || "온라인 마케팅" }, { text: generatedDate() }],
   ], { x: 0.55, y: 2.18, w: 7.17, h: 1.06, colW: [2.16, 1.44, 2.04, 1.53], rowH: [0.38, 0.68], border: { type: "solid", color: COLORS.border, pt: 1 }, fontFace: FONT_BODY, fontSize: 10.5, color: COLORS.text, align: "center", valign: "middle", margin: 0.06 });
 
-  const taskRows = coverRows(selected, completedWorks);
+  const taskRows = coverRows(tasks, completedWorks);
   const rowHeight = Math.min(0.63, 2.72 / Math.max(taskRows.length, 1));
   slide.addTable([
     [{ text: "진행 내역", options: { ...header, colspan: 2 } }],
@@ -153,7 +160,7 @@ async function addCover(pptx: PptxGenJS, selected: ReportProject, input: z.outpu
     [{ text: "보구정’s 코멘트", options: header }, { text: "진행 요약", options: header }],
     [
       { text: input.comment || "입력된 코멘트가 없습니다.", options: { valign: "middle", bold: Boolean(input.comment) } },
-      { text: `완료 실적 ${completedWorks.length}건\n진행 과업 ${selected.tasks.length}개\n증빙 파일 ${evidenceCount}개`, options: { valign: "middle" } },
+      { text: `완료 실적 ${completedWorks.length}건\n진행 과업 ${tasks.length}개\n증빙 파일 ${evidenceCount}개`, options: { valign: "middle" } },
     ],
   ], { x: 0.55, y: boxY, w: 7.17, h: 3.25, colW: [4.35, 2.82], rowH: [0.38, 2.87], border: { type: "solid", color: COLORS.border, pt: 1 }, fontFace: FONT_BODY, fontSize: 11, color: COLORS.text, valign: "middle", margin: 0.12 });
 
@@ -250,7 +257,9 @@ export async function generateReportPptx(raw: ReportInput) {
   const data = await getReportSetupData();
   const selected = data.projects.find((item) => item.project.project_id === input.project_id);
   if (!selected) throw new Error("프로젝트를 찾을 수 없습니다.");
-  const completedWorks = selected.works.filter((work) => work.status === "completed" && work.work_date >= input.start_date && work.work_date <= input.end_date);
+  const reportTasks = reportTasksForPeriod(selected, input.start_date, input.end_date);
+  const reportTaskIds = new Set(reportTasks.map((task) => task.task_id));
+  const completedWorks = selected.works.filter((work) => reportTaskIds.has(work.task_id) && work.status === "completed" && work.work_date >= input.start_date && work.work_date <= input.end_date);
   const pageTotal = reportSlideCount(selected, input.start_date, input.end_date);
   const evidenceImages = await prepareEvidenceImages(completedWorks);
 
@@ -264,9 +273,9 @@ export async function generateReportPptx(raw: ReportInput) {
   pptx.title = `${selected.project.vendor_name}_${input.start_date}_${input.end_date}_결과보고서`;
   pptx.theme = { headFontFace: FONT_HEAD, bodyFontFace: FONT_BODY };
 
-  await addCover(pptx, selected, input, completedWorks, pageTotal);
+  await addCover(pptx, selected, reportTasks, input, completedWorks, pageTotal);
   let pageNumber = 2;
-  for (const [taskIndex, task] of selected.tasks.entries()) {
+  for (const [taskIndex, task] of reportTasks.entries()) {
     const taskWorks = completedWorks.filter((work) => work.task_id === task.task_id);
     const chunks = chunkWorks(taskWorks);
     for (const [chunkIndex, chunk] of chunks.entries()) {
