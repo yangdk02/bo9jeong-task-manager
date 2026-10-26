@@ -1,17 +1,17 @@
 asset_id,project_id,asset_name,asset_category,version,file_path,file_name,status,note,owner_person_id,uploaded_by,uploaded_at
-AST-001,PRJ-2026-001,제주담음식품 브랜드 로고 기본형,로고,v1,storage/assets/PRJ-2026-001/AST-001_로고.png,AST-001_로고.png,active,샘플 프로젝트 자료입니다.,USR-001,USR-001,2026-08-05T10:00:00+09:00
-AST-002,PRJ-2026-001,제주담음식품 브랜드 컬러 가이드,브랜드 가이드,v2,storage/assets/PRJ-2026-001/AST-002_브랜드_가이드.png,AST-002_브랜드_가이드.png,active,샘플 프로젝트 자료입니다.,USR-003,USR-001,2026-09-05T10:00:00+09:00
-AST-003,PRJ-2026-001,제주담음식품 캠페인 카드뉴스 원본,카드뉴스,v2,storage/assets/PRJ-2026-001/AST-003_카드뉴스.png,AST-003_카드뉴스.png,active,샘플 프로젝트 자료입니다.,USR-004,USR-001,2026-10-05T10:00:00+09:00
-AST-004,PRJ-2026-001,제주담음식품 메인 배너 시안,배너,v2,storage/assets/PRJ-2026-001/AST-004_배너.png,AST-004_배너.png,planned,샘플 프로젝트 자료입니다.,USR-005,USR-001,2026-08-05T10:00:00+09:00
-AST-005,PRJ-2026-002,바람결카페 브랜드 로고 기본형,로고,v1,storage/assets/PRJ-2026-002/AST-005_로고.png,AST-005_로고.png,active,샘플 프로젝트 자료입니다.,USR-002,USR-002,2026-08-05T10:00:00+09:00
-AST-006,PRJ-2026-002,바람결카페 브랜드 컬러 가이드,브랜드 가이드,v2,storage/assets/PRJ-2026-002/AST-006_브랜드_가이드.png,AST-006_브랜드_가이드.png,active,샘플 프로젝트 자료입니다.,USR-004,USR-002,2026-09-05T10:00:00+09:00
-AST-007,PRJ-2026-002,바람결카페 캠페인 카드뉴스 원본,카드뉴스,v2,storage/assets/PRJ-2026-002/AST-007_카드뉴스.png,AST-007_카드뉴스.png,active,샘플 프로젝트 자료입니다.,USR-012,USR-002,2026-10-05T10:00:00+09:00
-AST-008,PRJ-2026-002,바람결카페 메인 배너 시안,배너,v2,storage/assets/PRJ-2026-002/AST-008_배너.png,AST-008_배너.png,planned,샘플 프로젝트 자료입니다.,USR-016,USR-002,2026-08-05T10:00:00+09:00
-AST-009,PRJ-2026-003,숨비해녀마을협동조합 브랜드 로고 기본형,로고,v1,storage/assets/PRJ-2026-003/AST-009_로고.png,AST-009_로고.png,active,샘플 프로젝트 자료입니다.,USR-003,USR-003,2026-08-05T10:00:00+09:00
-AST-010,PRJ-2026-003,숨비해녀마을협동조합 브랜드 컬러 가이드,브랜드 가이드,v2,storage/assets/PRJ-2026-003/AST-010_브랜드_가이드.png,AST-010_브랜드_가이드.png,active,샘플 프로젝트 자료입니다.,USR-005,USR-003,2026-09-05T10:00:00+09:00
-AST-011,PRJ-2026-003,숨비해녀마을협동조합 캠페인 카드뉴스 원본,카드뉴스,v2,storage/assets/PRJ-2026-003/AST-011_카드뉴스.png,AST-011_카드뉴스.png,active,샘플 프로젝트 자료입니다.,USR-009,USR-003,2026-10-05T10:00:00+09:00
-AST-012,PRJ-2026-003,숨비해녀마을협동조합 메인 배너 시안,배너,v2,storage/assets/PRJ-2026-003/AST-012_배너.png,AST-012_배너.png,planned,샘플 프로젝트 자료입니다.,USR-017,USR-003,2026-08-05T10:00:00+09:00
-AST-013,PRJ-2026-004,오름책방 브랜드 로고 기본형,로고,v1,storage/assets/PRJ-2026-004/AST-013_로고.png,AST-013_로고.png,active,샘플 프로젝트 자료입니다.,USR-001,USR-004,2026-08-05T10:00:00+09:00
-AST-014,PRJ-2026-004,오름책방 브랜드 컬러 가이드,브랜드 가이드,v2,storage/assets/PRJ-2026-004/AST-014_브랜드_가이드.png,AST-014_브랜드_가이드.png,active,샘플 프로젝트 자료입니다.,USR-004,USR-004,2026-09-05T10:00:00+09:00
-AST-015,PRJ-2026-004,오름책방 캠페인 카드뉴스 원본,카드뉴스,v2,storage/assets/PRJ-2026-004/AST-015_카드뉴스.png,AST-015_카드뉴스.png,active,샘플 프로젝트 자료입니다.,USR-010,USR-004,2026-10-05T10:00:00+09:00
-AST-016,PRJ-2026-004,오름책방 메인 배너 시안,배너,v2,storage/assets/PRJ-2026-004/AST-016_배너.png,AST-016_배너.png,planned,샘플 프로젝트 자료입니다.,USR-018,USR-004,2026-08-05T10:00:00+09:00
+AST-001,PRJ-2026-001,제주담음식품 브랜드 로고 기본형,로고,v1,storage/assets/PRJ-2026-001/AST-001_asset.png,AST-001_로고.png,active,샘플 프로젝트 자료입니다.,USR-001,USR-001,2026-08-05T10:00:00+09:00
+AST-002,PRJ-2026-001,제주담음식품 브랜드 컬러 가이드,브랜드 가이드,v2,storage/assets/PRJ-2026-001/AST-002_asset.png,AST-002_브랜드_가이드.png,active,샘플 프로젝트 자료입니다.,USR-003,USR-001,2026-09-05T10:00:00+09:00
+AST-003,PRJ-2026-001,제주담음식품 캠페인 카드뉴스 원본,카드뉴스,v2,storage/assets/PRJ-2026-001/AST-003_asset.png,AST-003_카드뉴스.png,active,샘플 프로젝트 자료입니다.,USR-004,USR-001,2026-10-05T10:00:00+09:00
+AST-004,PRJ-2026-001,제주담음식품 메인 배너 시안,배너,v2,storage/assets/PRJ-2026-001/AST-004_asset.png,AST-004_배너.png,planned,샘플 프로젝트 자료입니다.,USR-005,USR-001,2026-08-05T10:00:00+09:00
+AST-005,PRJ-2026-002,바람결카페 브랜드 로고 기본형,로고,v1,storage/assets/PRJ-2026-002/AST-005_asset.png,AST-005_로고.png,active,샘플 프로젝트 자료입니다.,USR-002,USR-002,2026-08-05T10:00:00+09:00
+AST-006,PRJ-2026-002,바람결카페 브랜드 컬러 가이드,브랜드 가이드,v2,storage/assets/PRJ-2026-002/AST-006_asset.png,AST-006_브랜드_가이드.png,active,샘플 프로젝트 자료입니다.,USR-004,USR-002,2026-09-05T10:00:00+09:00
+AST-007,PRJ-2026-002,바람결카페 캠페인 카드뉴스 원본,카드뉴스,v2,storage/assets/PRJ-2026-002/AST-007_asset.png,AST-007_카드뉴스.png,active,샘플 프로젝트 자료입니다.,USR-012,USR-002,2026-10-05T10:00:00+09:00
+AST-008,PRJ-2026-002,바람결카페 메인 배너 시안,배너,v2,storage/assets/PRJ-2026-002/AST-008_asset.png,AST-008_배너.png,planned,샘플 프로젝트 자료입니다.,USR-016,USR-002,2026-08-05T10:00:00+09:00
+AST-009,PRJ-2026-003,숨비해녀마을협동조합 브랜드 로고 기본형,로고,v1,storage/assets/PRJ-2026-003/AST-009_asset.png,AST-009_로고.png,active,샘플 프로젝트 자료입니다.,USR-003,USR-003,2026-08-05T10:00:00+09:00
+AST-010,PRJ-2026-003,숨비해녀마을협동조합 브랜드 컬러 가이드,브랜드 가이드,v2,storage/assets/PRJ-2026-003/AST-010_asset.png,AST-010_브랜드_가이드.png,active,샘플 프로젝트 자료입니다.,USR-005,USR-003,2026-09-05T10:00:00+09:00
+AST-011,PRJ-2026-003,숨비해녀마을협동조합 캠페인 카드뉴스 원본,카드뉴스,v2,storage/assets/PRJ-2026-003/AST-011_asset.png,AST-011_카드뉴스.png,active,샘플 프로젝트 자료입니다.,USR-009,USR-003,2026-10-05T10:00:00+09:00
+AST-012,PRJ-2026-003,숨비해녀마을협동조합 메인 배너 시안,배너,v2,storage/assets/PRJ-2026-003/AST-012_asset.png,AST-012_배너.png,planned,샘플 프로젝트 자료입니다.,USR-017,USR-003,2026-08-05T10:00:00+09:00
+AST-013,PRJ-2026-004,오름책방 브랜드 로고 기본형,로고,v1,storage/assets/PRJ-2026-004/AST-013_asset.png,AST-013_로고.png,active,샘플 프로젝트 자료입니다.,USR-001,USR-004,2026-08-05T10:00:00+09:00
+AST-014,PRJ-2026-004,오름책방 브랜드 컬러 가이드,브랜드 가이드,v2,storage/assets/PRJ-2026-004/AST-014_asset.png,AST-014_브랜드_가이드.png,active,샘플 프로젝트 자료입니다.,USR-004,USR-004,2026-09-05T10:00:00+09:00
+AST-015,PRJ-2026-004,오름책방 캠페인 카드뉴스 원본,카드뉴스,v2,storage/assets/PRJ-2026-004/AST-015_asset.png,AST-015_카드뉴스.png,active,샘플 프로젝트 자료입니다.,USR-010,USR-004,2026-10-05T10:00:00+09:00
+AST-016,PRJ-2026-004,오름책방 메인 배너 시안,배너,v2,storage/assets/PRJ-2026-004/AST-016_asset.png,AST-016_배너.png,planned,샘플 프로젝트 자료입니다.,USR-018,USR-004,2026-08-05T10:00:00+09:00
