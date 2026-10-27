@@ -1,71 +1,77 @@
 # 보구정 과업 관리 도구
 
-보구정의 프로젝트, 과업, 작업, 증빙 파일과 마케팅 자료를 관리하고 편집 가능한 PPTX 보고서를 생성하는 웹 앱입니다.
+보구정의 마케팅 프로젝트, 과업, 작업 실적, 증빙 파일과 자료 DB를 관리하고 편집 가능한 PPTX 결과 보고서를 생성하는 웹 앱입니다.
 
-담당자 선택 랜딩, 홈 대시보드, 프로젝트·과업·작업의 조회 및 생성·수정·삭제 화면이 구현되어 있습니다. 이름·부서 자동완성으로 현재 담당자를 선택하면 프로젝트별 월간 목표, 완료 작업, 최근 작업과 과업별 상세 실적을 확인하고 직접 관리할 수 있습니다.
+- 운영 화면: https://bo9jeong-task-manager.vercel.app
+- 저장소: https://github.com/yangdk02/bo9jeong-task-manager
+- 앱 표기: `보구정 과업 관리 도구` / 랜딩 영문 표기 `BO9JEONG WORKSPACE`
 
-## 실행
+## 구현된 기능
+
+- 담당자 검색·선택 및 신규 담당자 추가
+- 프로젝트·과업·작업 생성, 조회, 수정, 삭제
+- 프로젝트·과업·작업 복수 담당자 지정과 부서별 조회
+- 월간 반복·일회성 과업 구분, 목표·초과 수행 진행률
+- 프로젝트 계약 만료 분류
+- 여러 증빙 파일 등록, 교체, 개별 삭제와 Ctrl+V 붙여넣기
+- 자료 DB 생성, 검색, 수정, 삭제
+- 작업·자료 댓글과 자동 활동 기록
+- 네이버 플레이스 월별 방문자 수 입력 및 전월 비교
+- 월 범위 기반 PPTX 결과 보고서 미리보기·다운로드
+- CSV 11개와 등록 파일의 ZIP 백업·복구
+
+## 로컬 실행
+
+Node.js 설치 후 프로젝트 루트에서 실행합니다.
 
 ```powershell
 npm install
 npm run dev
 ```
 
-브라우저에서 `http://localhost:3000`을 엽니다. 담당자 선택 후 대시보드는 `/dashboard`로 연결됩니다. Supabase 환경변수가 없으면 로컬 CSV·파일 저장소를 사용하며, 첫 실행에 `data/local` CSV가 없다면 `data/templates`의 헤더를 안전하게 복사합니다.
+브라우저에서 `http://localhost:3000`을 엽니다. `npm run dev`는 로컬 데이터가 없을 때 샘플 CSV와 파일을 준비하며, 기존 `data/local` 데이터는 덮어쓰지 않습니다.
 
-## 먼저 읽을 문서
-
-1. `AGENTS.md` — 개발 중 지켜야 할 범위와 규칙
-2. `docs/HANDOFF.md` — 기획·설계 결과와 MVP 완료 기준
-3. `docs/DATA_SCHEMA.md` — CSV 테이블 및 컬럼 정의
-
-## 로컬 데이터 초기화
-
-Node.js가 설치된 환경에서 다음 명령을 실행합니다.
+검증 명령:
 
 ```powershell
-node scripts/init-local-data.mjs
+npm test
+npm run lint
+npm run typecheck
+npm run build
 ```
 
-초기화 결과:
+## 데이터 저장
 
-- `data/templates/*.csv`: 헤더만 포함한 원본 템플릿
-- `data/local/*.csv`: 앱이 실제로 읽고 쓰는 로컬 데이터
-- `storage/work_files/`: 작업 캡처본과 증빙 파일
-- `storage/assets/`: 로고, 가이드, 시안 등의 자료 파일
-- `storage/generated_reports/`: 즉시 생성한 보고서
+| 환경 | 구조화 데이터 | 파일 |
+|---|---|---|
+| 로컬 | `data/local/*.csv` 11개 | `storage/work_files`, `storage/assets` |
+| Vercel | Supabase Postgres 11개 테이블 | 비공개 Supabase Storage |
 
-초기화 스크립트는 기존 로컬 CSV를 덮어쓰지 않습니다.
+- 빈 CSV 헤더: `data/templates`
+- 샘플 원본: `data/seed`
+- 샘플 파일과 경로 매핑: `data/seed-files`
+- 로컬 빈 데이터 초기화: `npm run init:data`
+- 로컬 샘플 초기화: `npm run init:data:seed`
+- Supabase 최초 초기화: `npm run setup:supabase`
 
-샘플 데이터까지 초기화하려면 다음 명령을 사용합니다. 기존 데이터와 파일은 그대로 보존됩니다.
+파일은 한 번의 저장 요청에서 합계 4MB까지 허용합니다. 이미지, PDF, 일반 문서, 디자인 원본과 ZIP을 지원하며 동영상 업로드는 지원하지 않습니다.
 
-```powershell
-npm run init:data:seed
-```
+## 보고서 규칙
 
-샘플 원본 백업과 배포용 seed 구성은 [`docs/SAMPLE_DATA.md`](docs/SAMPLE_DATA.md)에 기록되어 있습니다.
+- 프로젝트와 시작 월·종료 월을 선택합니다.
+- 월간 반복 과업은 선택 기간에 포함됩니다.
+- 일회성 과업은 생성 월이 선택 기간 안에 있을 때만 포함됩니다.
+- 선택 기간에 완료된 작업만 실적으로 집계합니다.
+- 플레이스 관리 과업은 대표 캡처와 전월·조회 월 방문자 수 비교표를 한 페이지에 표시합니다.
+- 결과물은 편집 가능한 PPTX 1종이며 보고서 이력 테이블은 만들지 않습니다.
 
-## 현재 저장 방식
+## 문서
 
-- 로컬 개발은 UTF-8 CSV와 `storage` 폴더를 사용합니다.
-- Vercel 검증 배포는 Supabase Postgres와 비공개 Storage bucket을 사용합니다.
-- CSV의 `file_path` 형식인 `storage/...`를 Postgres에서도 그대로 유지합니다.
-- Google Sheets·Google Drive 연동과 실제 로그인은 구현하지 않습니다.
-- 화면 코드는 저장소를 직접 다루지 않고 별도 저장소 계층을 거칩니다.
+1. `AGENTS.md` — 저장소 작업 규칙
+2. `docs/HANDOFF.md` — 현재 구현 범위와 업무 규칙
+3. `docs/DATA_SCHEMA.md` — 11개 데이터 표와 검증 규칙
+4. `docs/DEPLOYMENT.md` — Vercel·Supabase 구성과 배포 절차
+5. `docs/SAMPLE_DATA.md` — 현재 샘플 데이터와 백업
+6. `docs/TODO.md` — 남은 작업
 
-## Vercel 검증 배포
-
-배포 준비와 Supabase 초기화 순서는 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)를 따릅니다. 남은 단계는 [`docs/TODO.md`](docs/TODO.md)에서 관리합니다.
-
-## 확정된 보고서 형식
-
-- 사용자가 제공한 A4 세로 보구정 결과 보고 양식의 디자인과 구성을 기준으로 합니다.
-- 생성되는 페이지 수는 고정하지 않고 선택한 기간과 포함할 실적에 따라 조정합니다.
-- 보고서는 프로젝트와 기간을 선택할 때 편집 가능한 PPTX 1종으로 즉시 생성합니다.
-- 보고서 이력 테이블은 만들지 않습니다.
-
-## 원본 요구사항
-
-- 보구정 Notion: https://perfect-salary-063.notion.site/_-3fdcbfafb8b9808497fed772c464f456
-- 데이터 스키마 정의 Google Sheets: https://docs.google.com/spreadsheets/d/1Gc1GySvCY8n01IQ4FEWsy_n6aA3B1-DQkTy3GYdXi28/edit
-
+Google Sheets·Google Drive 연동, 실제 로그인·권한, 회사 내부 서버 배포는 현재 범위에 포함하지 않습니다. Vercel Hobby는 시연·검증용이며 실제 운영 전 플랜 적합성을 다시 검토해야 합니다.

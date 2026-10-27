@@ -14,7 +14,6 @@ const useSeed = process.argv.includes("--seed");
 const storageDirs = [
   path.join(projectRoot, "storage", "work_files"),
   path.join(projectRoot, "storage", "assets"),
-  path.join(projectRoot, "storage", "generated_reports"),
 ];
 
 await mkdir(localDir, { recursive: true });

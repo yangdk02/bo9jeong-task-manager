@@ -1,5 +1,8 @@
 node_modules/
 .next/
+.codex-build/
+.codex-ppt-build/
+tmp/
 coverage/
 *.log
 *.tsbuildinfo
@@ -15,10 +18,7 @@ data/local/*
 storage/*
 !storage/assets/
 !storage/work_files/
-!storage/generated_reports/
 storage/assets/*
 storage/work_files/*
-storage/generated_reports/*
 !storage/assets/.gitkeep
 !storage/work_files/.gitkeep
-!storage/generated_reports/.gitkeep
