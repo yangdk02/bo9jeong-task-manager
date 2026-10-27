@@ -18,7 +18,6 @@ npm run dev
 1. `AGENTS.md` — 개발 중 지켜야 할 범위와 규칙
 2. `docs/HANDOFF.md` — 기획·설계 결과와 MVP 완료 기준
 3. `docs/DATA_SCHEMA.md` — CSV 테이블 및 컬럼 정의
-4. `mockup/mockup.html` — 화면과 상호작용 참고 자료
 
 ## 로컬 데이터 초기화
 
@@ -68,8 +67,5 @@ npm run init:data:seed
 ## 원본 요구사항
 
 - 보구정 Notion: https://perfect-salary-063.notion.site/_-3fdcbfafb8b9808497fed772c464f456
-- 시스템 설계 Google Slides: https://docs.google.com/presentation/d/14jX-ar6Wk68ZAzO7kYx_71aHbqGInnH99RnvyO6eQj0/edit
 - 데이터 스키마 정의 Google Sheets: https://docs.google.com/spreadsheets/d/1Gc1GySvCY8n01IQ4FEWsy_n6aA3B1-DQkTy3GYdXi28/edit
-
-위 링크는 기획 근거입니다. 실행 중 데이터 저장소로 사용하지 않습니다.
 
