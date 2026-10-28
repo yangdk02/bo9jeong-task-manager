@@ -61,11 +61,7 @@ button { letter-spacing: inherit; }
 /* 담당자 선택 랜딩 */
 .landing-page { display: grid; grid-template-columns: minmax(0, 1.04fr) minmax(440px, .96fr); width: 100%; min-height: 100vh; background: var(--surface); }
 .landing-visual { position: relative; min-height: 100vh; overflow: hidden; background: var(--primary-light); }
-.landing-visual > img { object-fit: cover; transform: scale(1.045); animation: landing-image-float 10s ease-in-out infinite; will-change: transform; }
-@keyframes landing-image-float {
-  0%, 100% { transform: scale(1.045) translate3d(0, 0, 0); }
-  50% { transform: scale(1.075) translate3d(0, -1.2%, 0); }
-}
+.landing-visual > img { object-fit: cover; }
 .landing-visual::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(21, 46, 52, .03) 42%, rgba(32, 69, 70, .68) 100%); }
 .landing-visual-overlay { position: absolute; z-index: 1; left: clamp(28px, 5vw, 72px); right: 32px; bottom: clamp(40px, 8vh, 90px); color: #fff; }
 .landing-visual-overlay > span { display: inline-block; margin-bottom: 16px; padding: 7px 11px; border: 1px solid rgba(255,255,255,.42); border-radius: 999px; background: rgba(255,255,255,.12); font-size: 10px; font-weight: 800; letter-spacing: .14em; backdrop-filter: blur(8px); }
@@ -185,10 +181,6 @@ th,td { font-size: 14px; }th { font-size: 12px; }td small { font-size: 12px; }.t
 @media (max-width: 760px) { .project-form-section-head { align-items: flex-start; }.project-form-section-head > strong { white-space: nowrap; }.task-check-fields { grid-template-columns: 1fr; padding-left: 15px; }.task-name-field,.task-assignee-picker { grid-column: auto; } }
 @media (max-width: 460px) { .landing-entry { padding-inline: 22px; }.landing-visual { min-height: 35vh; }.landing-visual-overlay { left: 22px; }.landing-visual-overlay > span { display: none; }.landing-visual-overlay h2 { font-size: 29px; }.summary-grid { grid-template-columns: 1fr; } }
 @media (max-width: 460px) { .landing-person-form { grid-template-columns: 1fr; }.landing-person-form-head,.landing-person-form > p,.landing-person-form > .btn-primary { grid-column: auto; } }
-
-@media (prefers-reduced-motion: reduce) {
-  .landing-visual > img { animation: none; transform: scale(1.045); }
-}
 
 @media (max-width: 1180px) {
   .report-condition-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
