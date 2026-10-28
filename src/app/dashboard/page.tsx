@@ -2,6 +2,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { CountingRuleNote } from "@/components/counting-rule-note";
 import { getDashboardData } from "@/lib/server/dashboard";
 import Link from "next/link";
+import type { CSSProperties } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ function formatDate(value: string) {
 export default async function DashboardPage() {
   const data = await getDashboardData();
   const month = Number(data.monthKey.split("-")[1]);
+  const overallProgress = Math.max(0, Math.min(data.totals.percent, 100));
 
   return <div className="app-shell">
     <AppSidebar people={data.people} active="dashboard" />
@@ -27,7 +29,13 @@ export default async function DashboardPage() {
         <article><span>이번 달 과업</span><strong>{data.totals.target}</strong><small>반복 + 이달 등록한 일회성</small></article>
         <article><span>완료 과업</span><strong>{data.totals.completed}</strong><small>목표 수량을 채운 과업</small></article>
         <article><span>남은 과업</span><strong>{data.totals.remaining}</strong><small>목표 수량이 남은 과업</small></article>
-        <article className="accent"><span>전체 진행률</span><strong>{data.totals.percent}%</strong><small>이번 달 기준</small></article>
+        <article
+          className={`accent progress-summary-card${overallProgress >= 100 ? " is-complete" : ""}`}
+          style={{ "--progress-level": `${overallProgress}%` } as CSSProperties}
+        >
+          <div className="progress-summary-liquid" aria-hidden="true" />
+          <div className="progress-summary-content"><span>전체 진행률</span><strong>{data.totals.percent}%</strong><small>이번 달 기준</small></div>
+        </article>
       </section>
       <CountingRuleNote dashboardProgress />
       <section className="content-section">
