@@ -71,7 +71,7 @@ button { letter-spacing: inherit; }
 .landing-brand { display: flex; align-items: center; gap: 13px; color: var(--text-primary); }.landing-brand img { object-fit: contain; }.landing-brand-copy strong,.landing-brand-copy small { display: block; }.landing-brand-copy strong { font-size: 21px; font-weight: 900; letter-spacing: -.025em; }.landing-brand-copy small { margin-top: 3px; color: var(--text-secondary); font-size: 10px; font-weight: 400; letter-spacing: .09em; }
 .landing-entry-content { width: min(100%, 460px); margin: auto; padding: 60px 0; }
 .eyebrow { margin: 0; color: var(--primary-strong); font-size: 11px; font-weight: 900; letter-spacing: .16em; }
-.landing-entry h1 { margin: 11px 0 13px; font-size: clamp(34px, 4vw, 48px); line-height: 1.15; letter-spacing: -.055em; }.landing-entry .landing-workspace-title { font-weight: 400; }
+.landing-entry h1 { margin: 11px 0 13px; font-size: clamp(34px, 4vw, 48px); line-height: 1.15; letter-spacing: -.055em; }.landing-entry .landing-workspace-title { font-weight: 400; }.landing-workspace-title b { font-weight: 800; }
 .landing-description { max-width: 390px; margin: 0 0 38px; color: var(--text-secondary); font-size: 15px; line-height: 1.65; }
 .landing-footer { margin: 0; color: var(--text-secondary); font-size: 11px; text-align: center; }
 .landing-picker { position: relative; }
