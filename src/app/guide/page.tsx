@@ -14,7 +14,7 @@ const steps = [
 export default async function GuidePage() {
   const people = await readTable("people");
   return <div className="app-shell"><AppSidebar people={people} active="guide" /><main className="dashboard-main">
-    <header className="page-header"><div><p className="eyebrow">GUIDE</p><h1>이용 가이드</h1><p>BO9JEONG WORKSPACE의 기본 흐름을 빠르게 확인하세요.</p></div></header>
+    <header className="page-header"><div><p className="eyebrow">GUIDE</p><h1>이용 가이드</h1><p>보구정 워크스페이스의 기본 흐름을 빠르게 확인하세요.</p></div></header>
     <section className="guide-grid">{steps.map(([number, title, body]) => <article className="card guide-card" key={number}><span>{number}</span><h2>{title}</h2><p>{body}</p></article>)}</section>
     <section className="card guide-rule"><div><p className="eyebrow">COUNTING RULE</p><h2>완료 작업 1행은 실적 1건입니다</h2></div><p>한 작업에 캡처본이 여러 장이어도 실적은 한 건으로 집계합니다. 목표를 넘기면 실제 달성률과 초과한 수량도 그대로 표시합니다.</p></section>
   </main></div>;
