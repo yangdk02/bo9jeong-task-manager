@@ -60,6 +60,6 @@ export function LandingPersonPicker({ people }: { people: Person[] }) {
       <span><strong>{selected.name}</strong><small>{selected.department} 담당자로 시작합니다</small></span>
       <span aria-hidden="true">✓</span>
     </div>}
-    <button className="btn-primary landing-continue" type="button" disabled={!selected} onClick={continueToDashboard}>대시보드 시작하기 <span aria-hidden="true">→</span></button>
+    <button className="btn-primary landing-continue" type="button" disabled={!selected} onClick={continueToDashboard}>보구정 워크플레이스 시작하기 <span aria-hidden="true">→</span></button>
   </div>;
 }
