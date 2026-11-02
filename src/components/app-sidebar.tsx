@@ -9,7 +9,7 @@ export function AppSidebar({ people, active }: Props) {
   return <aside className="sidebar">
     <Link className="brand" href="/">
       <Image className="brand-logo" src="/images/bo9jeong-logo.png" alt="보구정" width={28} height={47} />
-      <div className="brand-copy"><strong>보구정</strong><small>과업 관리 도구</small></div>
+      <div className="brand-copy"><strong>BOS</strong><small>BO9JEONG WORKSPACE</small></div>
     </Link>
     <nav aria-label="주요 메뉴">
       <Link className={`nav-item${active === "dashboard" ? " active" : ""}`} href="/dashboard" aria-label="홈"><span className="nav-icon">⌂</span><span className="nav-label">홈</span></Link>

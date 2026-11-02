@@ -4,7 +4,7 @@
 
 - 운영 화면: https://bo9jeong-task-manager.vercel.app
 - 저장소: https://github.com/yangdk02/bo9jeong-task-manager
-- 앱 표기: `보구정 과업 관리 도구` / 랜딩 영문 표기 `BO9JEONG WORKSPACE`
+- 제품명: `보구정 과업 관리 도구` / 화면 브랜드: `BOS` · `BO9JEONG WORKSPACE`
 
 ## 구현된 기능
 
